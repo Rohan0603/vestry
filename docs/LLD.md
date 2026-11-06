@@ -1,0 +1,399 @@
+# Vestry low-level design
+
+Status: **Gate 2 draft; not approved or implementation-qualified**. Draft revision: 3, incorporating two independent advisory-review correction rounds. Date: 7 November 2026. Scope: VES-8/VES-9–VES-22. Baseline: [REQUIREMENTS.md](../REQUIREMENTS.md) revision 1.2, D1–D35. Source checkout `f4c83ee`; branch `ves/8-architecture-design`. [HLD.md](HLD.md) supplies system choices, alternatives and research sources; source identifiers W1–W6/O1–O5/L1–L4 below refer to its source register.
+
+This is an interface/schema/test design, not existing code. All runtime controls are **target**. Named versions are research snapshots, not installed or locked dependencies. No baseline amendment, source reuse, product implementation, provider call or publication is authorized by this document. Every numbered section records a **decided draft technical disposition**; Owner gates and conformance remain distinct.
+
+## 1. Adapter contract — VES-9 / §18 item 1
+
+Traceability: §7–§8, §11–§12, §14–§15; D4–D5, D20, D26; R5/R8. Choice: one capability-driven external adapter, CLI default, owned native execution boundary; no TypeScript SDK or upstream-internal imports. Optional private-server raw HTTP is a separately qualified transport, not an automatic fallback.
+
+### Typed operations
+
+| Operation | Input / output | Invariant |
+|---|---|---|
+| `discover` | configured executable reference -> installation path, executable digest, version, shell/runtime requirements | Discovery does not invoke a model or silently choose a different installation |
+| `qualify` | immutable installation/environment/model/profile fingerprint -> capability manifest + evidence references | Has its own approved qualification scope; no paid/credential probe from ordinary startup |
+| `preflight` | role, profile, policy bytes, model pin, lease/snapshot, current fingerprint -> canary record | Unknown/incomplete final-tool evidence blocks dispatch |
+| `start` | committed dispatch intent + fence + role admission -> owned process/session observations | Worker requires current full D27 certificate; other roles require authorized upstream scope, never approval of their future output; all require policy/canary/capability checks |
+| `observe` | process handle + ordered input -> normalized events | Every event tied to observed session/attempt; malformed or ambiguous input cannot authorize effects |
+| `cancel` | owned attempt and deadline -> acknowledgement + independent termination proof | ACK and proof separate; only supervisor can establish all-owned-process exit |
+| `reconcile` | interrupted intent/session/store/OS/Git identities -> known facts or recovery_required | Never silently execute the interrupted tool again |
+| `export_evidence` | observed session + authorized store -> sanitized structured evidence in memory | Own redaction precedes any durable/Linear/telemetry sink; no raw export persisted |
+
+`OwnedProcess` is the Rust platform boundary, not a Tokio child reconstructed from a PID: attempt/generation, process identity, owned Job, stdout/stderr readers, root wait, Job enumeration, terminate-owned, proof. Async I/O and state coordination use Tokio; Windows creation uses `windows` bindings. Unix implements group signaling but advertises weaker crash guarantees.
+
+### Manifest and dispatch identity
+
+Manifest fields: schema_version, adapter_id, installation_version, executable_digest, environment_fingerprint, policy_profile_digest, requested_model_pin, qualified_at, platform, evidence_revision, and capability entries `(name, state, conditions, proof_ids, limitations)`.
+
+States are exactly `supported|unsupported|conditional|unverified`. Conditional is usable only when every recorded condition is independently current. Unverified is unavailable. Missing required capability never becomes best-effort. Separate capabilities include final_tool_policy, step_usage, resolved_model_identity, served_model_identity, session_resume, sanitized_export, cooperative_abort, owned_descendant_termination, hard_crash_cleanup, exact_effect_grants, revocation and secret_safe_capture. A manifest cannot turn an inherited global plugin or stored approval into authorization.
+
+`DispatchBinding` is a tagged union. `PreAnchorDiscovery` binds stable goal_id, Owner intake digest/revision, authorized target/snapshot digest, clarification/scratch scope, role, admission, attempt/dispatch ordinal and fence; anchor/criterion/task/Gate-approval fields are structurally absent, never fabricated. Only discovery/charter proposal may use it, with no implementation, plan-node or merge authority. `AnchoredInvocation` requires current anchor/criterion IDs plus role-specific upstream Gate bindings; Worker additionally requires task revision, implementation lease/base and full D27 certificate. Both variants require exact executable digest, canonical argument/config/policy bytes, shell/PATH/plugin snapshot, model pin and credential **references**. Missing required fields in either variant deny; environment fingerprints exclude secret values and use references/version identifiers for secret-backed configuration.
+
+Pre-anchor admission revalidates the unchanged Owner intake, target allowlist, scratch-only effect profile, clarification budget and process ownership instead of running predicates over an invented anchor. At Gate 1 the writer atomically freezes the approved anchor and changes the goal to anchored state; outstanding discovery admissions are invalidated, never retroactively relabelled as anchored. Every later admission runs D33 drift predicates and cites criteria, including Architect/Planner/Reviewer. The baseline freezes the anchor at Gate 1 yet says every dispatch cites it; the pre-anchor discovery distinction exposes that wording tension for Gate 2 disposition rather than weakening post-Gate-1 traceability. If an operation cannot be classified into the discovery-only boundary, it waits for the approved anchor.
+
+### Per-dispatch environment
+
+Construct from an explicit allowlist, not wholesale inherited environment. Resolve Windows executable/shell paths without ambiguous PATH lookup; record the safe effective PATH and resolutions. Secret values are obtained only for an explicitly approved operation and injected into that owned child; never interpolate into prompts/argv/logs/evidence.
+
+- Set validated `OPENCODE_PERMISSION`; preserve object order with wildcard first, specific matches after. Reject malformed JSON locally before OpenCode starts.
+- Set `OPENCODE_DISABLE_PROJECT_CONFIG` and `OPENCODE_DISABLE_AUTOUPDATE`; isolate `OPENCODE_DB` with a Windows-absolute per-attempt path and verify actual store identity, not merely environment spelling.
+- Supply explicit config content and approved agent/model profile. Reset additive config-directory and experimental overrides rather than inherit them.
+- Clear auto-approval aliases, automatic sharing, unapproved MCP/custom-tool/plugin configuration, provider env credentials and OTLP endpoints/headers from inherited input. Never send `always`; persisted permission stores remain isolated.
+- Pin `OPENCODE_GIT_BASH_PATH`/shell resolution where used; reject unexplained executable mismatch.
+- `OPENCODE_PURE`, default-plugin suppression, XDG config/data/cache/state relocation, valid `OPENCODE_AUTH_CONTENT` and home discovery controls are **qualification candidates**, not proven hermetic switches. A fresh XDG data root also changes the auth-file location; do not copy the Owner's auth store. Additional managed/home/custom-tool sources must be enumerated or the profile remains unverified.
+- For any server-bearing path, including an embedded server if exposed by `run`, independently establish loopback binding/auth behavior. Private `serve` requires ephemeral discovered port, explicit 127.0.0.1 and distinct memory-only password injected into the child. No mDNS, CORS expansion, auth mutation, global config mutation, dispose-all or upgrade routes.
+
+Plugin-source contradiction: O5 directly shows a headless pure guard, unlike the historical narrative. Record configured origins and, separately, machine-observed loaded origins; absence of a configured entry is not proof nothing loaded. Existing evidence is unchanged; re-probe before promoting suppression.
+
+### D26 canary protocol
+
+1. Check current version/binary/config/role/model/fence; parse and order-preserving serialize the actual policy. A malformed-policy negative test must fail before a real child/model call.
+2. Run inspection in an owned qualification context: `debug config` and `debug agent <name>` without `--tool`. Parse resolved ordered rules and enabled tool map. Inspect the dispatch model, not an unrelated default model. These commands can perform dependency/auth-related initialization and are not intrinsically side-effect-free.
+3. Run a **deny-all canary dispatch** before real work on this dispatch path. Hard-deny tool exposure under the canary policy; use the pinned authorized provider and model and a disposable scope. No grants are inferred from its prompt.
+4. PASS only if machine evidence explicitly identifies the relevant final tool inventory or an unavailable-tool error with a complete list proving the target effect tool absent. Correlate session/role/model/version with the canary. Mere lack of `tool_use`, model prose, no created file, or debug inventory alone is insufficient.
+5. Require positive-control/negative-control qualification: expected available tool in a safe authorized profile; absent tool under deny; reversed-order policies; malformed payload; role/model/plugin/MCP differences; stale fingerprint; wrong store. Positive controls must not authorize privileged effects casually.
+6. One bounded canary retry is permitted within the attempt budget when observable evidence was not produced; otherwise NOT RUN/unverified and no real dispatch. Never continue just to avoid a stalled queue.
+7. Bind proof to the actual work profile and verify its ordered rules/config before launch. Deny-all canary does not prove every rule in a different real policy. Any change to policy, model, installation, plugins, store or source revision invalidates qualification/certificate.
+
+**Unresolved proof boundary:** no supported final-session attestation is established for every custom/MCP/provider tool path at this tag. Restrict the admitted profile to demonstrated paths; if no such profile passes D26, the milestone blocks. This is an honest design answer, not a synthetic canary PASS. O1–O3.
+
+### NDJSON ingestion
+
+Incremental UTF-8 framing; proposed maximum line 1 MiB, bounded queues, separate stderr drain. Preserve outer `step_finish` versus inner `step-finish`. Require observed session, part/message identifiers and nonnegative finite counters/cost; reject invalid values rather than coerce to zero. Deduplicate usage by attempt/session/part identity; token totals are not recomputed by blindly adding `total` to components. Cache/input accounting retains upstream definitions. Record snapshots as upstream provenance, not necessarily the current Git worktree SHA.
+
+Permission-rejection text is a separate bounded/redacted diagnostic channel, not valid NDJSON and not a canonical action grant. ANSI/multiline/unknown lines are classified explicitly. A secret-shaped payload is redacted before persistence. Output overflow must produce an integrity finding; it cannot silently discard mandatory usage/evidence. Backpressure protects memory, but never excuses starving stdout/stderr or inventing progress.
+
+Fresh CLI runs omit `--session`. Resume uses only observed session IDs after reconciliation. Exit 0 requires a complete valid stream and independent verification before any success claim. No `done` event is invented. CLI cancellation initially uses owned Job termination; cooperative `serve` abort remains unavailable until VES-24/VES-25 proof.
+
+## 2. Chief LLM invocation and effect gateway — VES-10 / §18 item 2
+
+Traceability: §5–§7, §15–§16; D7, D21, D30. Choice: the same adapter for Architect/Planner/Worker/Reviewer and optional verifier judgement, with a typed role and capability profile; no second LLM client.
+
+Architect/Planner receive explicitly selected redacted snapshots and a scratch output area, not a writable implementation worktree or privileged shell. Typed proposal output contains criteria, contracts, dependencies and provenance. The Chief validates it and alone commits authoritative decisions/plan records or Linear writes. A read-only prompt is not enforcement: target mutation, direct egress and nested task tools must be denied/qualified independently; unavailable enforcement keeps the role profile unavailable.
+
+Workers receive exactly one D27-certified task and a fenced lease. Reviewer is a new attempt/process/session, distinct from all producing attempts, with an immutable candidate SHA and no fix permissions. A failed/ambiguous review is input to the Chief, never self-approval. Both use measured per-step usage. All roles use current role admission, policy/canary/ownership checks and the three process slots, but full D27 Worker certification does not bootstrap its own pre-Gate-3 outputs.
+
+| Role admission | Already-authorized inputs | Output boundary |
+|---|---|---|
+| Discovery/charter proposal | Owner intake, target binding, explicit current policy and bounded clarification scope | Produces Gate 1 proposal; cannot require an already-approved charter |
+| Architect | Gate 1 anchor + authorized architecture scope and allowed read/scratch profile | Produces HLD/LLD for Gate 2; cannot require its own future design approval |
+| Planner | Approved Gate 1 and Gate 2 digests + planning scope/profile | Produces plan for Gate 3; cannot require its own future plan approval |
+| Worker | Gate 1–3 bindings + full current D27 certificate + lease/fence | Implements one task, never modifies acceptance/policy |
+| Reviewer/judgement invocation | Chief-owned review/check intent + exact candidate/evidence + read-only role profile | Advisory independent verdict; no implementation or self-approval |
+| Chief/Doctor/Messenger/deterministic Verifier | Native typed state/effect operations, not an LLM admission | Optional verifier judgement uses the same adapter; deterministic roles never acquire a second LLM client |
+
+`invocation_admissions` records role, upstream artefact digests, policy/capability/canary refs, snapshot/fence, budget reservation and generation. Missing upstream approval blocks the appropriate phase; missing future artefact never becomes a fabricated certificate. Test discovery -> Gate 1 -> Architect -> Gate 2 -> Planner -> Gate 3 -> Worker with no synthetic approvals, including unavailable capabilities before every phase.
+
+### Exact-action grant contract
+
+`ActionRequest` contains schema_version, action_id, actor_attempt, role, the §1 tagged scope binding (goal/intake/scratch only for PreAnchorDiscovery; required goal/anchor/criteria for AnchoredInvocation), lease/fence, operation enum, target repository/path/branch/destination, base/candidate SHA, typed args using secret references, expected_state_digest and current policy_revision. Proposed boundary: JSON ≤64 KiB; reject unknown operation/field, unsafe target, nonfinite number and inconsistent scope before evaluation. Read/write/execute/send are distinct permissions.
+
+`Approval` binds canonical request digest, target digest, reviewed SHA where applicable, policy revision, grantor identity, issued_at_ms, finite expires_at_ms and single-use state. Canonicalization hashes **references**, never secret values. Missing/non-numeric/expired expiry denies. Expiry is assessed conservatively after clock discontinuity/restart; unsure grants are denied rather than extended. Approval is not inferred from issue text, a marker, a model response or another command's grant.
+
+Chief-owned effect flow:
+
+1. Validate request and obtain actual diff/target snapshot; classify against current policy, including upward risk changes. Hard denials remain denied in every mode.
+2. Tier A uses its explicit allowed scope; Tier B requires recorded matching Owner clause or approval; Tier C always requires the Owner. No YOLO alias is passed by convenience.
+3. Fence conflicting worker mutation and independently bind current target/SHA. In one writer transaction compare request, policy, fence, expiry and unconsumed grant; consume grant, append audit and commit effect intent.
+4. Immediately invoke the fixed typed executor without returning a privileged reusable allowance to the worker. `expires_at` bounds admission at the last gateway evaluation; the irreversible effect itself cannot be transactionally atomic with SQLite. Delayed/unstarted intents are not dispatched after expiry or restart.
+5. Record observed result/read-back in a transaction; uncertain outcome parks and never reconsumes/replays the grant. Lost approval after consumption is acceptable fail-closed, duplicate effect is not.
+
+Revocation changes the policy revision. No queued unstarted request from the withdrawn class may pass evaluation. Already-admitted in-flight effects are not retroactively re-judged, matching §15. Reconcile them, and park dependent workers with BLOCKED and exact unblock condition. Tests must distinguish queued, admitted, running and uncertain effects.
+
+**Capability exclusion:** stock CLI patterns cannot implement this for arbitrary worker shell operations; private-server `once` is approval-request-level and lacks expiry/digest attestation. The typed executor is a draft target. Until worker effect restriction, target isolation and allowed egress are qualified, privileged execution is unavailable. Native process/lease control is not an OS sandbox; arbitrary build scripts cannot be assumed safe because their command prefix is allowlisted.
+
+## 3. State schema and transactions — VES-11 / §18 item 3
+
+Traceability: §10–§12; D3, D27–D33. Choice: bundled SQLite WAL, one dedicated writer thread owning its connection; bounded command queue; short read snapshots only after migrations. Read connections enable foreign_keys and do not mutate. Set/check WAL, synchronous FULL and busy timeout; no SQLite blocking call on a Tokio executor thread.
+
+IDs are opaque stable identifiers; SHA/digests use explicit algorithm/version. Timestamp fields are UTC integer milliseconds except exact Win32 creation FILETIME (stored losslessly). State enums are constrained; no null-as-success. Foreign keys and scoped unique keys enforce relationships; writes use expected-revision compare-and-set.
+
+| Table | Primary key / essential fields | Constraints/indexes and loss effect |
+|---|---|---|
+| `schema_migrations` | version; checksum, applied_at, binary_revision | Immutable ordered version/checksum; unknown/newer schema prevents write startup |
+| `daemon_generations` | generation_id; start, clean_shutdown, state | One current owner enforced with OS lock plus DB generation; loss means ownership unknown |
+| `projects` | project_id; Linear UUID/team UUID, repo binding | UUID identity, not mutable display identifier; bound-project scope checks on every write |
+| `goals` | goal_id; project_id, phase, intake_digest/revision, binding_kind, root_anchor_id, current_anchor_id, amendment_count, clarification_count, revision | PreAnchorDiscovery has no anchor until Gate 1; AnchoredInvocation requires both anchor refs; immutable intake provenance; counts 0..2/0..3; loss cannot be reconstructed from Linear |
+| `clarification_requests` | ask_key; goal_id, ordinal, question_digest, state, outbox_ref | UNIQUE(goal_id,ordinal), ordinal 1..3; count/reservation committed together; same key cannot consume twice |
+| `issue_budgets` | (project_id,issue_uuid); repair_count, revision | repair_count 0..2 against stable issue identity, survives task revisions/replacement attempts |
+| `repair_cycles` | (project_id,issue_uuid,ordinal); failed_candidate, trigger_key, attempt_ref, state | Ordinal 1..2, unique trigger/reservation; repair attempt creation and count increment are atomic |
+| `watchdog_episodes` | episode_key; attempt_id, stalled_progress_sequence, diagnosis_retry_effect, state | Same no-progress episode deduplicated; at most one diagnosis retry reservation within attempt retry cap |
+| `anchors` | anchor_id; goal_id, version, parent_id, canonical_json, digest, gate1_approval_ref | UNIQUE(goal_id,version), immutable; loss blocks all dependent work/acceptance |
+| `criterion_defs` | criterion_id; goal_id | Stable membership; criterion IDs never recycled |
+| `anchor_criteria` | (anchor_id,criterion_id); text, check_digest, constraints_digest | FK criterion/anchor, immutable; original constraints not silently replaced |
+| `charter_amendments` | amendment_id; goal_id, ordinal, old/new anchor, reason, Owner decision | UNIQUE(goal_id,ordinal), ordinal 1..2; counter/row committed together |
+| `gate_artefacts` | artefact_id; goal, gate, revision, digest, source refs | Approvals bind exact digest; new content invalidates approval |
+| `gate_decisions` | decision_id; artefact/anchor digest, outcome, Owner identity, time | Append-only; no approve-by-agent/marker |
+| `tasks` | task_id; goal, anchor, source issue UUID/revision, type/executor, state, revision | One executor/type; plan-node/criterion binding; state index; loss parks dependent leases |
+| `task_edges` | (predecessor,successor); mandatory | Same-goal membership; reject cycles transactionally |
+| `task_criteria` | (task_id,anchor_id,criterion_id); edge_type, enabling_task_id | Direct or enabling edge; enabling path reaches a direct task for same criterion; no prose inference |
+| `runs` | run_id; goal, generation, phase, binding_kind/intake or anchor ref, state, started_at | Discovery binds intake; later phases require frozen root/current anchor; no fresh run to reset budgets |
+| `attempts` | attempt_id; run, role, task_ref where applicable, state, retry_count, produced_sha, model/profile | Retry_count ≤2 against stable attempt; Worker requires task_ref, discovery forbids it; producing/review identities distinct |
+| `leases` | lease_id; attempt, kind, scoped scratch or repo/worktree/branch/base binding, generation, fence, state | Discovery scratch is not implementation lease; unique active ownership; uncertain lease retained |
+| `invocation_admissions` | admission_id; binding_kind, role, intake or upstream anchor/artefact digests, policy/canary/capability refs, budget reservation, generation | Tagged-union constraints from §1; Worker requires full D27; discovery never fabricates future refs |
+| `dispatches` | dispatch_id; attempt, ordinal, binding_kind, lease/fence, admission/manifest/canary/certificate refs, intent state, session_id | UNIQUE(attempt,ordinal); one active dispatch per attempt/lease via constrained active states; observed session only; loss prohibits replay |
+| `owned_processes` | process_record_id; dispatch, PID, creation_FILETIME, exe digest, job generation, observed state | Identity is PID+creation time, never PID alone; Job HANDLE never stored |
+| `policies` | policy_revision; canonical envelope, digest, Owner decision, supersedes | Append-only; current pointer changes atomically with invalidations |
+| `action_requests` | action_id; attempt, typed canonical references, digests, policy, risk, state | Operation/target scope constraints; denied requests preserved redacted |
+| `approvals` | approval_id; action digest, policy/SHA, expiry, consumed_by, state | UNIQUE consumed action; consumed/denied/expired append history, no reusable grants |
+| `effect_intents` | effect_id; action, actor/fence, idempotency key, state, expected result digest | UNIQUE(scope,idempotency key); unknown state cannot be resent automatically |
+| `readiness_certificates` | certificate_id; task revision, input fingerprint, checks13, outcome, invalidation | Only all-satisfied current records allow dispatch; invalidation history retained |
+| `check_manifests` | check_digest; canonical typed check, schema_version | Immutable registered executor/predicate; rewrite means new digest |
+| `check_results` | result_id; goal, anchor, criterion, check digest, candidate SHA, status, confidence, evidence, valid | PASS/FAIL/NOT RUN only; NOT RUN reason required; index goal/anchor/criterion/valid |
+| `reviews` | review_id; reviewer attempt, producing attempt set, SHA/diff, verdict, evidence, valid | Fresh identity; changed candidate invalidates; cannot use author's process |
+| `evidence` | evidence_id; safe artefact digest/path/type, producer, revision, redaction version, integrity state | Content-addressed safe files; missing/hash mismatch invalidates linked result |
+| `object_criteria` | (object_type,object_id,anchor_id,criterion_id); goal | Every anchored lease/dispatch/review/check/merge requires scoped edges; PreAnchorDiscovery instead requires admission's intake/scratch bindings, never synthetic criterion edges |
+| `usage_steps` | (attempt,session,part); counters, cost, model evidence, duration/source | Unique step identity prevents duplicate spend; unknown duration/model not fabricated |
+| `linear_mappings` | mapping_id; project UUID, remote UUID, local object, remote revision/digest | Unique remote/local relationship; identifier rename cannot duplicate project |
+| `outbox` | outbox_id; effect/key, destination, aggregate/sequence, safe payload, state | UNIQUE(destination,key), UNIQUE(aggregate,sequence); one inflight writer per aggregate |
+| `inbox` | (source,message_key); aggregate/sequence, payload_digest, received/processed | Duplicate same digest no-op; same key/different digest is conflict |
+| `audit_events` | sequence; previous_hash, canonical safe event, event_hash, actor/object refs | Append-only hash chain; missing/mismatch gates affected writes, not silently repaired |
+| `attention` | attention_id; goal/object, kind, dedupe_key, state, condition | Unique open dedupe key; precise unblock condition; not auto-approved |
+| `memory_facts` | fact_id; project/goal, kind, safe statement, provenance, supersedes, validity | Data-only constraints/decisions/rejected approaches; no self-elevation or secrets |
+| `adapter_stores` | store_id; attempt, absolute identity, sessions, export/evidence refs, state | Never approval authority; recovery-held until reconciled/exported |
+
+Loss of approvals, anchors, fencing or audit is not repaired by reading narrative comments. Evidence files can establish content integrity but not recreate authority. Corruption opens Doctor/attention in restricted mode; migrations must never erase an unknown schema to “recover”.
+
+Migration order: core/project/generation; anchor/gates; plan/run/attempt/lease; policy/action/effect; capabilities/process/session; verification/review/evidence; messaging/mapping/usage/attention/memory. Apply each numbered migration plus checksum transaction before other components open the DB; integrity/foreign-key checks and a backup/recovery strategy precede upgrade. Exact upgrade/backup implementation is a later ready issue, not a hidden assumption.
+
+### Required transaction/effect pairs
+
+| Transaction before effect | External effect | Transaction after observation |
+|---|---|---|
+| Lease reservation + audit + intent | Git worktree creation | Bind actual path/branch/base; mismatch/unknown parks |
+| Current role admission/canary + launch intent; Worker also requires full D27 certificate | Atomic owned spawn | Root identity while suspended, then resume observation; unknown intent no replay |
+| Stable ask/repair/diagnosis key + budget reservation + audit/outbox | Clarification delivery or repair/retry dispatch | Correlated outcome; same key no extra consumption, unknown delivery no new operation |
+| Approval consumption + action audit + intent | Typed local/Git/remote action | Independent result/read-back + marker; unknown parks |
+| Lifecycle transition + ordered outbox | Linear marker/status write | Remote identity/digest read-back + confirmed mapping |
+| Check/review intent + snapshot | Owned verifier/reviewer | Exact-SHA result/evidence + audit/outbox |
+| Export/deletion authorization + evidence refs | Redaction/export/deletion | Integrity/read-back + tombstone; never delete recovery-needed store |
+
+Every accepted worker message enters inbox with fence/sequence in the same transaction as state/evidence/outbox changes. Durable effect keys mean committed intent is never lost; they do **not** manufacture remote exactly-once API support.
+
+### Lifecycle transitions and integration handoff
+
+Goal phases are `discovery|architecture|planning|executing|integrating|awaiting_acceptance|blocked|accepted`; gate decisions bind artefact digests. Task states are `planned|ready|running|verifying|reviewing|repair_pending|verified_handoff|integrating|blocked|recovery_required|integrated_closed|withdrawn|cancelled`. Only `integrated_closed|withdrawn|cancelled` are terminal. `verified_handoff` remains open for integration and is never projected as Linear Done. Attempt states separately record `reserved|launch_intent|running|verifying|reviewing|succeeded|failed|cancel_pending|cancelled|recovery_required`; attempt success does not close its task. Task cancellation is terminal only after independent owned-process termination and preservation of pending changes/effects; otherwise it is `recovery_required`.
+
+| Transition | Required observation and atomic record | Disallowed shortcut |
+|---|---|---|
+| Gate-approved plan -> `ready` -> `running` | Current Worker D27 certificate, admission and fenced launch; observe owned root | Todo/remote Done is not dispatch authority |
+| `running` -> `verifying` -> `reviewing` | Immutable candidate SHA, independent checks and fresh reviewer bound to that SHA | Worker success is not verification; a new commit invalidates both |
+| Failed check/review -> `repair_pending` | Stable issue repair reservation plus failed-candidate evidence; replacement needs fresh admission | New task revision/run/attempt cannot reset repair count |
+| Successful checks/review -> `verified_handoff` | Current exact-SHA proofs, source/evidence bindings, HANDOFF/REVIEW HANDOFF outbox | No merged-SHA claim or CLOSEOUT |
+| Retire execution lease | All owned processes independently gone, every change recorded with candidate/base bindings; preserve user dirty state and retained worktree/artifacts | Lease retirement neither deletes the retained source nor closes the task |
+| Successor admission from handoff | Mandatory dependency has current independently verified/reviewed candidate; compose and bind successor base explicitly, recheck D27 | Mutable branch head, remote Done or conflicting candidates are insufficient |
+| Handoffs -> `integrating` | Integration snapshot composes the candidates; independent combined checks/review; invalidate changed-SHA proofs | Children passing cannot prove combined integration |
+| `integrating` -> `integrated_closed` | Owner-authorized reviewed merge independently read back, exact merged SHA, valid applicable proofs and atomic CLOSEOUT/status outbox | Pending PR/approval is not a merge; no automatic merge |
+| Integrated goal -> `awaiting_acceptance` -> `accepted` | Every issue in the approved plan is `integrated_closed` with complete independently valid attached proofs and confirmed remote closure; all root criteria PASS, current integrated review/evidence, no orphan work/unresolved blind spots; Owner acceptance bound to that exact bundle | Traced blocked/cancelled/withdrawn work, pending closure, child completion or a revised easier anchor cannot satisfy planned-issue closure |
+| Any uncertain effect/ownership -> `recovery_required` | Doctor finding, retained bindings/changes, precise BLOCKED condition | No replay, grant refund or clean cancellation by inference |
+
+The baseline Phase 4 closure/lease release precedes Phase 5 integration/PR, but §10 CLOSEOUT requires a merged SHA and §21 gates merge. The handoff/final-closure split is a proposed Gate 2 disposition, not a silent baseline amendment. **Final closure remains unavailable until the Owner resolves that sequencing discrepancy through the binding process and confirms the remote workflow mapping.** Verified candidates can be described without inventing a merge or Done status; pending merge remains visible and retained. Multi-issue integration tests must cover a successor from retained handoff, conflicting bases, pending merge, changed integration SHA, revoked merge approval, crash around merge/read-back/CLOSEOUT, and premature lease/source deletion.
+
+### Durable repair and diagnosis reservations
+
+Before starting a repair, the writer compares `issue_budgets.repair_count < 2` for the stable `(project_id,issue_uuid)`, reserves the next ordinal in `repair_cycles`, increments the count, creates the linked repair attempt/intent and commits audit/outbox together. A unique scoped trigger_key with identical failed-candidate digest returns the existing reservation; differing content conflicts. Rejection after two repairs parks that issue. Replacement attempts, task revisions, daemon restarts and new runs retain the same issue budget. Crash before commit consumes nothing; after commit the reservation stays consumed even if dispatch is uncertain. Reconciliation observes the existing intent rather than refunding or dispatching another repair.
+
+A watchdog episode binds attempt_id and the stalled durable-progress sequence. Its one diagnosis retry is atomically reserved in `watchdog_episodes` with the attempt retry-count increment, retry intent and audit/outbox, only when retry_count < 2. An existing episode cannot reserve again; a later episode cannot exceed the same attempt cap. Repair count and attempt retry count are separate limits; an ordinary retry cannot be relabelled to evade a failed-candidate repair reservation. Fault cases include concurrent duplicate triggers, mismatched same keys, crash at reservation/spawn/read-back, cap boundaries, renewed progress followed by another stall, and restart/replacement with exhausted budgets. Clarification uses the corresponding stable-goal reservation in §6.
+
+Ordinary retries and the watchdog's one retry retain the **same attempt_id and retry_count**, allocating a new dispatch ordinal; only an independently failed-candidate repair reservation creates a new repair attempt. Operator restart, transport failure, lost stream or missing canary output cannot create a fresh attempt to reset the cap. Two retries exhausted makes that attempt `recovery_required`; an unresolved transport/ownership/effect outcome cannot be converted into a repair to bypass reconciliation.
+
+Before any retry dispatch, independently establish that the preceding owned root and descendants are gone, reconcile its session/effects/source and preserve all changes. ACK, EOF or root exit alone is insufficient. Uncertain termination/effect outcome parks with no replacement launch. Retire the preceding dispatch's active ownership, increment retry_count, allocate ordinal, advance lease fence, invalidate old admission and commit retry intent/audit together with revision compare-and-set; a unique active-dispatch constraint prevents concurrent reservations. The new dispatch needs fresh role admission/canary and, for Worker, current D27. It gets a fresh owned Job with no overlap with the previous Job; late events carry the old fence and are rejected. Known session resume can recover context but never silently replay an interrupted tool. Tests: two schedulers race a retry, still-live grandchild blocks replacement, stale event after fencing, unknown effect cannot relaunch, and repeated restarts retain the exhausted count.
+
+## 4. Executable acceptance — VES-12 / §18 item 4
+
+Traceability: §6, §9; D29–D31. Choice: a versioned canonical JSON check manifest, not natural-language success detection or executable code generated at acceptance.
+
+Fields: schema_version, stable criterion_id, description, registered executor (`process|http_local|sqlite_read|file_assert`), program/argument references, cwd repository binding, allowlisted environment/targets, timeout_ms, expected exit/predicate, fixture/setup refs, output redaction rules and required platform. Process commands use absolute program + argument array, not interpolated shell strings. HTTP checks cannot add network destinations; SQLite checks are read-only; file targets must resolve inside authorized scope with symlink/reparse handling qualified.
+
+Predicate enums include exit_equals, JSON field_equals/contains, file_digest_equals and registered measured-threshold checks. Unknown/custom predicate is not executable until separately designed, reviewed and registered. A named human judgement may be recorded as evidence but cannot masquerade as a PASS for a required machine criterion. A criterion that resists mechanization makes the charter not execution-ready; raise that limitation at Gate 1 rather than weakening it at acceptance.
+
+Store/hash text **and** complete executable check, including expectations, timeout, fixture and environment. Changing expected values, skipping setup, accepting a new exit code, altering NFR measurement or replacing the check invalidates dependent proofs and requires the charter-change discipline. Neither a failing Worker nor the Verifier can rewrite it to pass.
+
+Result fields: criterion/check/anchor, candidate/base SHA, command/args safe references, environment/build, UTC time + elapsed monotonic duration, status, reason, confidence, evidence hashes, producer, limitations. Status is exactly PASS/FAIL/NOT RUN; missing environment or unsupported capability yields NOT RUN with reason. Confidence is high/medium/low and never substitutes for PASS. Old PASS is invalid on changed check, SHA, required environment or corrupted evidence.
+
+Tests: successful predicate; wrong output/exit; missing executable; denied network; timeout/cancel/crash; malformed/nonfinite manifest; secret in command/output; rewritten expected value; NOT RUN retained at closure; parent has independent checks even if children pass.
+
+## 5. Warning thresholds — VES-13 / §18 item 5
+
+Traceability: §8, §13; D13, D16. Choice: nonblocking thresholds, no circuit breaker. Draft token defaults: invocation 100k/250k/500k, goal 0.5M/1M/2M, rolling 24h 1M/2M/4M. These are proposed Owner-configurable policy values, not authorized crossings or new spend limits. Floor rationale and paid-cost caveats are in HLD §8.
+
+Usage accumulation is unique per step, independent of retransmission. Warn once per `(scope,window,threshold,policy_revision)` with current token/cost evidence and duration. Native attention + UI badge + ordered Linear PROGRESS warning + Windows notification all reference one finding; a failed notification does not erase it. Monetary warnings require valid currency/pricing/source and Owner thresholds; unknown/zero-free-router are visibly distinct.
+
+Missing required usage is a capability/integrity fault, not a spend-stop rule. Do not call a halted unknown-evidence profile a financial circuit breaker. Crossing a threshold never stops a qualified run; only independent policy/safety/recovery conditions can block it. Tests: duplicate events, cache counters, boundary crossing, time-window rollover, missing model/cost/usage, zero cost, unreachable notification/Linear; assert no stop-on-threshold path.
+
+## 6. Bounded clarification — VES-14 / §18 item 6
+
+Traceability: §6, §8; D34. Choice: **three atomic clarification questions per stable goal_id** before parking; at most one consolidated unresolved Owner decision presented at a time. Group related context, not independent hidden subquestions. Each independently answerable ask consumes one count; retransmission of the same ask key does not; an ambiguous answer requiring a new ask does. Do not use a questionnaire to evade the cap.
+
+No budget is spent asking reversible library/layout/operational choices already delegated. Record explicit charter assumptions and their validation checks; assumptions cannot invent credentials, scope, approval or acceptance. Before delivery, atomically compare `goals.clarification_count < 3`, reserve the next ordinal in `clarification_requests`, increment the count, append audit and create ordered outbox. Same ask_key/same digest resumes observation without increment; same key/different question is a conflict. A reserved ask remains consumed after uncertain delivery; reconcile it instead of sending a new question. The third unresolved question exhausts the budget and parks discovery with the exact missing decision. Restating a UI label, retrying an agent or restarting the daemon does not reset it. Acceptance rejection and amendment use the same goal identity. Tests: duplicate ask, compound ask rejection, crash before/after reservation/delivery, restart/cap, delegated decision skipped, missing answer parks without guessing.
+
+## 7. UI and local API — VES-15 / §18 item 7
+
+Traceability: §13–§15; D2–D3, D13, D32. Choice: compile-time embedded browser bundle, Axum typed HTTP commands and SSE; React/TypeScript client only, build-time Vite/Tailwind/shadcn/Radix/TanStack choices from HLD §3.
+
+Comparison: embedded versus loose static files trades executable size/build step for atomic install/API/asset compatibility. React versus plain browser HTML trades a larger bundle for consistent gate/forms/virtualized views; no claim framework choice alone proves speed. Templated server pages remain simpler but complicate live multi-view optimistic-state reconciliation. Prefer the embedded typed client for eight views; measure bundle and keyboard behavior before accepting the tradeoff.
+
+API resources: goals/anchor/criteria/timeline, attention, gate artefacts/decisions, evidence, plan/dependencies, workers/process observations, Doctor/recovery, Linear sync/usage/policy references. Commands carry request key, expected object revision and typed payload; 409 reports stale inputs, 403 denied, 422 malformed/unsupported, 503 unavailable authority/dependency. A pending result is not an accepted effect. Unknown worker state is displayed unknown, not animated as progressing.
+
+SSE event envelope: schema_version, durable global event sequence, aggregate/revision, safe payload and daemon generation. Subscribe/replay from Last-Event-ID using native audit/projection events; query a snapshot with its sequence then replay newer events to close the snapshot/subscription race. Duplicates dedupe; gaps or pruned history require explicit resnapshot. Keepalive is connection liveness only. Proposed per-client bounded buffer 256 events/1 MiB; slow clients disconnect/resnapshot, never stall authoritative writes or receive silent partial history. Virtualize long histories; paginate evidence and limit output tails. No raw transcript enters a client cache.
+
+Security: bind literal 127.0.0.1, validate exact Host/Origin, no wildcard CORS, reject cross-site mutation/content types, CSP self-only, no eval/inline scripts/remote assets, escape output and disable raw Markdown HTML. Loopback/Host/Origin do not authenticate native local clients. **Owner-session bootstrap/authentication remains a blocking API qualification detail:** no route may claim authenticated Owner authorization from those checks alone, and mutation remains unavailable until an OS-local bootstrap/session mechanism consistent with §15 secret-reference rules is separately specified and proved. Provider secrets never enter browser forms/storage; the UI displays references only. This gap is explicit, not another human workflow gate or permission to expose unauthenticated mutation.
+
+The eight required surfaces and six standing filters are exactly those in baseline §13. Do not create a manual-routing queue, extra dedicated audit/worktree browser, or replay UI that the baseline defers. Anchor version/criteria/amendment count/orphan/blind-spot state are first-class in goal/gate/plan views. Controls show target versus verified-enforced with evidence/revision links; changed proof returns to target.
+
+Development-only Vite proxy may target a local daemon; it is not shipped. HMR/dev CSP exceptions never enter release assets. Local UI test plan: golden-path three gates, evidence/error/unknown states, no runtime/provider/network startup, stale version conflicts, SSE disconnect/duplicate/gap/backpressure, 50-node traceability, three streams, keyboard/focus/screen reader/contrast, hostile Markdown/local-origin requests. All are NOT RUN in this document-only pass.
+
+## 8. Provider/model pinning — VES-16 / §18 item 8
+
+Traceability: §8, §14–§16; R5. Choice: immutable per-invocation pin `(provider, logical_model, API_alias, route/base endpoint, adapter version/digest, config digest, credential_ref)`; never automatic substitution or fallback. Endpoint URLs are normalized and allowlisted, without credential values in strings.
+
+Capture requested pin before spawn, resolved OpenCode assistant metadata via safe export/server message observation, and provider-served identity evidence separately. JSON stdout step usage lacks a trustworthy served-model header. Export IDs are assigned before inference and may map through API aliases; no claim that they prove backend fidelity. If strict served-model evidence is unavailable, that required capability is unverified and the profile cannot qualify. Rotating free/auto models do not meet VES-23 pinned-paid proof.
+
+Mismatch mid-session fences further dispatch/effects, records the discrepant fields safely and raises attention. Unknown is not a match. Requalification triggers: version/hash, provider/model/alias/route, env/policy/config, plugin/tool registry, shell/PATH, credential reference version, platform or source contract change. Disable auto-update, never call upgrade. Tests: requested/resolved mismatch; alias/backend difference; opaque route; resumed-session pin change; automatic fallback; binary changed after preflight; stale proof.
+
+## 9. Native audit and telemetry — VES-17 / §18 item 9
+
+Traceability: §12, §15, §18 item 9; D19, D32. Choice: native hash-chained audit is required; Rust tracing spans are metadata-only; optional OTel HTTP exporter is disabled by default. No bundled collector/Compose and no new LLM orchestration framework. LangChain/LangSmith stay rejected as already settled.
+
+Canonical audit event includes schema, actor/generation, action/state transition/denial, the §1 tagged scope binding (discovery goal/intake/scratch without synthetic criteria; anchored scoped IDs with required criteria), policy/clause/grant references, outcome/evidence references, time and previous hash. Compute SHA-256 over canonical safe event+previous hash using explicit version. Hash chaining detects modifications relative to a trusted head; it does not prevent a compromised writer rewriting the chain and head. External checkpoint/evidence provenance improves detection, not a claim of tamper-proof storage.
+
+Span map: goal -> task -> attempt -> lease/dispatch -> normalized tool observation -> verification -> independent review -> governed effect. Allowed attributes: scoped IDs, role, qualified model identity/source, counters, durations, status and safe digests. No prompts, completions, command strings, file contents, provider headers or arbitrary error dumps. Telemetry spans are projections of safe native events, never inputs to authorization. Optional loopback collector URL is pinned/validated; no inherited OTLP endpoint/headers or worker OTLP enabled by default. OTel version/API compatibility and privacy are qualified before export.
+
+Exporter success/200 is not persistence proof. If a collector lacks read-back, show export acknowledged but storage unverified; audit stays available offline. Export outage/loss does not falsify native activity or block the loop. Avoid raw tracing fmt layers that could leak errors despite safe OTel attributes. Tests: exporter absent/offline, false 200, raw secret/error metadata injection, chain corruption, denied-action visibility, changed proof status.
+
+## 10. NFRs and retention — VES-18 / §18 item 10
+
+Traceability: §7, §12, §14; D25, D32. Choice: use HLD §8 proposed budgets and defined measurement exclusions; no invented measured figures. Bound queues/pagination/read snapshots rather than loading complete histories into RAM. No worker memory kill limit or spend circuit breaker.
+
+Cold-start measurement separates offline usable state, native spawn and full first dispatch including canary/provider/approval. Whole-system memory counts descendants and browser, not merely daemon RSS. Streaming test workload is explicitly three 100 KiB/s producers; report UTF-8 framing/redaction overhead, not only UI FPS. Database measurements separate native DB/WAL, safe evidence and external stores; historical per-session/per-message figures are not summed.
+
+Retention states: active -> recovery_held or terminal -> exported_verified -> deletion_eligible -> deletion_authorized -> deleted. Seven days is proposed eligibility, not permission. Before eligibility: no active/resumable/recovery references, sanitized export plus own redaction, integrity hashes, native provenance and required Linear read-back. Raw upstream stores remain adapter-owned recoverable handles, never accepted secret-safe evidence. Deletion is Tier C under §7; no automatic TTL purge, lease cleanup or user-file removal. Exact path/identity changes invalidate approval. Preserve tombstone/proof and do not delete a store if export fails.
+
+Faults: disk full, DB busy, WAL growth, evidence tamper, missing store, wrong absolute path, export secret marker, unapproved expiry cleanup, interrupted deletion, user files in lease. Native audit/state cannot be dropped to meet a storage budget. NFR FAIL/NOT RUN goes to attention, not a lowered threshold.
+
+## 11. Readiness certification — VES-19 / §18 item 11
+
+Traceability: §6 checks 1–13; D27, D31–D32. Choice: deterministic Chief certification from typed, versioned evidence. LLM evaluations are recommendations, not a substitute for mechanically established prerequisites.
+
+| Fixed check | Required source/evaluation |
+|---|---|
+| 1 outcome/purpose | Approved typed task outcome, stable goal/criterion edge and one executor |
+| 2 scope/exclusions | Approved task scope/exclusion fields and repository binding |
+| 3 decisions/contracts | Gate-approved artefact/decision digests; no unresolved contract IDs |
+| 4 predecessors verified | Mandatory edges all have independent valid checks/review, not remote Done alone |
+| 5 implementation inspected | Current branch/base/candidate snapshot and inspection evidence on relevant files |
+| 6 deps/compatibility | Pinned lockfile/source/licence/manifest and qualified version conditions |
+| 7 executable steps | Typed bounded plan outputs with concrete operations; ambiguous new scope stays unready |
+| 8 interfaces/errors | Approved schemas/interface/error references present and current |
+| 9 measurable acceptance | Registered immutable check manifests, no undecidable required criterion |
+| 10 fault expectations | Positive/negative/regression/cancel/recovery cases explicitly assigned |
+| 11 environment/commands | Resolved executable/args/platform/fixtures/allowlists; no invented command |
+| 12 security/privacy/license/rollback | Approved scoped evaluation, clause/credential refs if needed and exact rollback base |
+| 13 no hidden architecture choice | All referenced decisions resolved/approved; LLM uncertainty triggers an explicit gap, not true-by-default |
+
+Certificate stores task/goal/anchor, exactly 13 results with evidence refs, input fingerprint, UTC issue time, Chief generation/version and invalidation history. All must be satisfied; inability to mechanize “specific enough/no hidden decision” is a concrete unresolved prerequisite, not a boolean guessed by an LLM. Gate 3 never bypasses this.
+
+Invalidation triggers: task/scope/check/anchor revision; dependency/verification/review changes; Gate artefact/decision digest; repo base/candidate SHA; policy/approval/expiry; dependency lockfile; adapter/model/config/plugin/shell fingerprint; required environment; evidence integrity; generation/ownership uncertainty. Compare full fingerprint again at dispatch inside the writer transaction. Re-evaluate only affected checks using cached **current evidence**, then issue a new certificate; old certificates never become current through relabeling.
+
+Fault tests: missing one of 13; dependency remote Done but no proof; changed base/check/model; certificate reused after crash/expiry; hidden decision absent evidence; process launched between certification and invalidation; stale marker cannot certify itself.
+
+## 12. Linear wire protocol — VES-20 / §18 item 12
+
+Traceability: §10–§12; D21, D28–D29. Choice: exact heading plus a fenced JSON block; semantic canonical read-back, append-only history, sequence/key dedupe. Marker names remain `START`, `PROGRESS`, `BLOCKED`, `HANDOFF`, `REVIEW HANDOFF`, `CLOSEOUT`.
+
+Envelope fields: protocol=`vestry-marker-v1`, marker, key, project_uuid, issue_uuid, aggregate_seq, binding_kind with goal/anchor/criteria or discovery intake reference, applicable task/run/attempt refs, actor_generation, source_revision, timestamp_ms, safe typed payload. The same §1 tagged-union rules apply; discovery cannot fabricate anchor/task refs or use CLOSEOUT to claim planned work completed. Heading must match marker. Unknown version/type, wrong project, missing/oversized fields or same key/different digest is rejected and audited. Marker parsing extracts one well-formed designated block, not text guesses or arbitrary code fences.
+
+Payloads preserve baseline fields: START approach/source/dependencies/branch/base/expected diff/tests/risks; BLOCKED precise blocker/owner/unblock condition; REVIEW HANDOFF checklist/tri-state results/PR reference or explicit NOT RUN/exact SHA/limitations/security/rollback/reviewer action; CLOSEOUT merged SHA/criteria/remaining linked follow-ups. If merge has not happened, do not manufacture CLOSEOUT. Warnings use PROGRESS and remain nonblocking.
+
+Outbox orders all marker/status operations for an issue under one aggregate sequence; at most one inflight. Before a retry, page remote comments and reconcile key+canonical JSON digest+mapped remote identity; compare semantic JSON, not Markdown whitespace/strikethrough. Read-back verifies status, project UUID, attachments/evidence identity and payload. Connector capability/pagination gaps mean unknown outcome and BLOCKED, not safe duplicate retry.
+
+Remote APIs without atomic idempotency/create keys cannot promise physical exactly-once. A write intent with possible transmission becomes uncertain before sending; after crash query it, do not simply resend. Serialize writers, deduplicate known records, and park if no definitive observation is possible. Preserving a possibly unsent intent is safer than committing a duplicate effect. START/CLOSEOUT keys are stable across daemon restarts.
+
+Parse foreign/malformed markers as untrusted observations only. Expected own marker is confirmed only against the durable outbox/mapping/known author identity. A forged heading/key cannot recreate approvals, leases or state. Marker parsing supports read-back/discrepancy reporting; SQLite is never reconstructed from comments. Owner edits remain scope proposals against the authoritative approved revision; Chief does not overwrite them.
+
+Tests: Markdown normalization/fence repair; duplicate key; changed digest; forged author/project; pagination/truncation; crash before/after send/read-back; unknown create outcome; reversed sequence; stale remote status; bound-project UUID survives renamed display identifier. Existing VES-30 owns live proof; fixture connector tests are insufficient.
+
+## 13. Agent entrypoint — VES-21 / §18 item 13
+
+Traceability: §15, §18 item 13, §21; D21, D31, D35. Choice: maintain Vestry's own committed AGENTS; **do not auto-generate/overwrite one in other repositories**. Selected instruction excerpts belong in the dispatched data context with their source hash, not a new authorization source.
+
+Own entrypoint links baseline/design/current project, declares role/capability/verification/evidence rules, refuses secret persistence and criterion weakening, and states that worker reports are inputs. Compare it against approved baseline/design digests during integrity audit; inconsistency raises attention rather than silent rewriting. This pass does not edit AGENTS or introduce new permission settings.
+
+Repository config and instruction discovery are distinct. `OPENCODE_DISABLE_PROJECT_CONFIG` is mandatory; whether AGENTS/skills/ancestor files still reach the prompt is qualified under exact version/env. Record observed discovery and injection; do not assert that authored instructions are obeyed merely because a file exists. New O5 headless-plugin guard/XDG findings are candidates for an Owner-visible mitigation, not deletion of R8 or historical evidence. Unapproved custom tool modules/plugins remain blocked paths.
+
+Tests: malicious AGENTS/config tries self-elevation/check rewrite/model change; nested/ancestor discovery; intended instruction omitted by disable flags; global plugin injects content; source/prompt digest changes; no file written to unrelated target repo. Governance text is data in every outcome; only Chief policy/gates govern effects.
+
+## 14. Goal anchor and drift predicates — VES-22 / §18 item 14
+
+Traceability: §6 cross-cutting, §9, §12; D31, D33. Choice: stable goal/criterion IDs, canonical anchor hashes including text/checks/constraints, explicit Planner-authored typed edges, durable re-derivation. No LLM prose-based coverage inference.
+
+Canonical anchor contains schema_version, goal_id, version, parent_digest, statement, scope/non_goals/constraints, ordered stable criterion records (text, check manifest digest, expectations/environment/NFR references), and Gate 1 artefact provenance. UTF-8 canonical JSON follows fixed key ordering, exact string content and finite numeric representation; do not normalize wording so a meaning change disappears. Hash SHA-256 with domain/schema version. Criteria keep IDs across amendments; new IDs do not inherit earlier PASS.
+
+Original Gate-1 root criteria remain final-acceptance obligations. An amendment is append-only, records which criterion was wrong and why, the full diff and Owner decision, and cannot weaken/delete original requirements or be slipped into acceptance. The baseline contains both re-frozen amendment versions and original-anchor acceptance language; conservative design requires root obligations plus approved applicable constraints, never chooses a newer easier set. If those cannot coexist, return the contradiction to the Owner through binding change control, not an invented interpretation. Store amendment cap against stable goal_id, increment with new version in one transaction, UNIQUE ordinal 1..2. A third attempt parks the goal; restart/relabel/acceptance rejection cannot reset the counter.
+
+Planner emits `direct` or `enables` edges. An indirect enabling task must name a same-criterion downstream direct task and a cycle-free dependency path. Merely tagging a refactor with a criterion is not proof of coverage. Chief validates scope/edge/path transactionally and propagates criterion references to leases/dispatches/checks/reviews/merges via `object_criteria`.
+
+### Orphan work
+
+For current anchor membership, open tasks are those not terminal (`integrated_closed|withdrawn|cancelled`); verified handoffs and blocked/recovery-held work remain open and visible. A task with no valid criterion edge is orphan work and cannot dispatch. Inflight attempts also require matching object edges/fence; the integrity audit checks them independently rather than relying on the original task row.
+
+```sql
+SELECT t.task_id
+FROM tasks AS t
+WHERE t.goal_id = :goal_id
+  AND t.state NOT IN ('integrated_closed', 'withdrawn', 'cancelled')
+  AND NOT EXISTS (
+    SELECT 1
+    FROM task_criteria AS e
+    JOIN anchor_criteria AS c
+      ON c.anchor_id = e.anchor_id AND c.criterion_id = e.criterion_id
+    WHERE e.task_id = t.task_id
+      AND e.anchor_id = :anchor_id
+  );
+```
+
+### Blind spots
+
+A current criterion without valid PASS and without open covering work is a blind spot. NOT RUN is **not PASS**, even with a genuine reason. PASS must match current criterion/check/SHA/environment and intact evidence; `valid` is maintained/invalidation-audited from those bindings, not trusted merely because a worker set it. Enabling edges count only after the path validator accepted them.
+
+```sql
+SELECT c.criterion_id
+FROM anchor_criteria AS c
+WHERE c.anchor_id = :anchor_id
+  AND NOT EXISTS (
+    SELECT 1 FROM check_results AS r
+    WHERE r.goal_id = :goal_id
+      AND r.anchor_id = c.anchor_id
+      AND r.criterion_id = c.criterion_id
+      AND r.check_digest = c.check_digest
+      AND r.status = 'PASS' AND r.valid = 1
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM task_criteria AS e
+    JOIN tasks AS t ON t.task_id = e.task_id
+    WHERE e.anchor_id = c.anchor_id
+      AND e.criterion_id = c.criterion_id
+      AND t.goal_id = :goal_id
+      AND t.state NOT IN ('integrated_closed', 'withdrawn', 'cancelled')
+  );
+```
+
+These are precise predicates against the designed schema, **not tested production SQL**. DB integrity/path validity are prerequisites; foreign-key corruption is not “no drift”. Run them before every AnchoredInvocation dispatch transaction, on scope/check/proof changes, at proposed five-minute R9 cadence, on restart of anchored goals and before acceptance. PreAnchorDiscovery uses the intake/scratch validation in §1; absent pre-Gate-1 anchors are neither synthetic PASS nor anchor-based drift findings. Findings use stable attention keys. The audit reports and parks orphan work; it does not silently revise the anchor/plan to hide findings. Only explicit new covering work or a valid current PASS resolves a blind spot.
+
+Before raising acceptance and again before recording Owner acceptance, every issue in the approved plan must be `integrated_closed` with independently valid attached proofs and confirmed remote closure; planned blocked/recovery-held/verified-handoff/withdrawn/cancelled work cannot satisfy that guard, even if another task has a valid PASS for the same criterion. Every root criterion must also PASS independently, with zero open orphan work and no unresolved blind spot. If the closure discrepancy remains unresolved, this guard blocks goal acceptance. Test a traced blocked planned task plus a valid criterion PASS: drift may be clear, but acceptance must fail. UI at 50 issues uses searchable criterion-to-work table/grouping, direct/enabling labels, per-criterion status and dedicated orphan/blind-spot filters, not an unreadable all-node canvas.
+
+Mandatory faults: inject zero-edge task (no dispatch); remove sole coverage (immediate blind spot); wrong anchor/criterion scope; fake enabling path/cycle; stale PASS/new SHA; NOT RUN with real reason remains unresolved; third amendment after restart parks; amended check cannot reuse old PASS; acceptance rejection keeps same anchor/goal budget. Existing VES-29 owns live injected drift proof.
+
+## 15. Verification and handoff obligations
+
+All architecture validation is limited to document consistency, traceability, source review and safe-content/diff checks. This pass does **not** run product builds, UI/browser tests, paid provider calls, cancellation/crash/retention experiments or live end-to-end Linear protocol qualification. Each is NOT RUN, not PASS-by-source-inspection.
+
+Next ready work must resolve the explicit gaps before coding the affected feature: final-session canary, governed effect execution/revocation, strict model fidelity, secret-safe external stores/egress, local Owner-auth bootstrap, Win32 pipes/Job/nested-broker behavior, migrations/backup, exact compatible lockfiles and connector idempotency observations. No blanket readiness certificate is issued for those gaps.
+
+Independent design review must check full HLD/LLD against baseline D1–D35 and §§1–21, all fourteen dispositions, the old/new evidence contradictions, one-use/expiry admissions, root-anchor obligations, no loss of dirty user state, target/enforced distinction and complete NOT RUN reporting. A reviewing agent is advisory; it is not the Owner's Gate 2 approval or the GitHub PR reviewer/merge evidence required by VES-8.
+
+Revision 1 advisory review read the complete HLD/LLD and baseline and found three concrete issues: pre-gate LLM bootstrap was incorrectly subjected to full Worker readiness; verified handoff versus merged-SHA closure needed an explicit transition model; clarification/repair budgets lacked durable reservations. Revision 2 separates role admissions, documents the closure discrepancy and state transitions, and adds stable budget tables/transactions/fault cases. Original reviewed artefact hashes: HLD `3ceaef0ab796a4acbde90cdff2725b850b482128b6e4be4d668ebf6ac06950f6`; LLD `7fe81140e5234a37afd1ee199b66fa2184fc246e16be66ce6b946666b532cc95`. The revision 2 independent recheck confirmed those corrections and found three further omissions: acceptance lacked all-planned-issue closure, discovery's generic bindings still required a future anchor, and ordinary retry identity/quiescence was underspecified. Revision 3 adds the independent planned-closure guard, tagged intake/anchor admissions and schema constraints, and same-attempt fenced retries only after independent termination/reconciliation. A focused independent recheck confirmed all three revision 3 guards and identified two remaining generic ActionRequest/audit scope templates, now aligned with the same tagged binding. Review is advisory, never Owner Gate 2/PR approval; no draft is a runtime PASS.
+
+Rollback for this draft: no runtime state changed; retain the original baseline/evidence, revise the uncommitted design branch or decline its selections. Repository commits/publication require explicit request; main is not touched. Gate 2, independent PR review, commits/merge and §19 milestone proof remain open until their own evidence exists.
