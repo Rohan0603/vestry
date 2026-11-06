@@ -1,0 +1,49 @@
+# Rust / Cargo
+/target/
+**/*.rs.bk
+Cargo.lock.bak
+
+# Node (the worker plane is an external dependency, never a build input here)
+node_modules/
+
+# Build and generated artefacts — never hand-edited, never committed
+dist/
+dist-*/
+out/
+*.tsbuildinfo
+
+# Databases and runtime state
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Credentials and environment — these must never be committed under any circumstance
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+auth.json
+
+# Logs and local runtime artefacts
+*.log
+logs/
+run/
+
+# Per-worker throwaway OpenCode stores created during milestone runs
+.opencode-db/
+
+# OS and editor noise
+Thumbs.db
+Desktop.ini
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Local scratch that is not evidence
+scratch/
+tmp/
