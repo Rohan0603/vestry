@@ -44,6 +44,9 @@ Desktop.ini
 .vscode/
 *.swp
 
+# Qoder IDE generated artefacts (repowiki cache, knowledge index) — local, regenerated, not committed
+.qoder/
+
 # Local scratch that is not evidence
 scratch/
 tmp/
