@@ -90,7 +90,7 @@ configured-but-undemonstrated settings stay `target`:
 | Setting | Status | Basis |
 |---|---|---|
 | Require a PR before merging | `verified-enforced` | Direct fast-forward push to `main` rejected (GH006), as admin |
-| Require one approving review | `verified-enforced` | Unreviewed PR #1 computes `mergeStateStatus: BLOCKED`; no merge attempted |
+| Require one approving review | `verified-enforced` | Merge attempt on unreviewed PR #1 rejected: "base branch policy prohibits the merge" ([supplement](evidence/2026-11-07-vestry-pr1-unreviewed-merge-attempt.md)) |
 | Enforce on admins | `verified-enforced` | Both push rejections were issued to the admin account |
 | Block force pushes | `verified-enforced` | Non-fast-forward force push to `main` rejected (GH006) |
 | Dismiss stale approvals on new commits | `target` | Configured; no approving review exists to dismiss (single collaborator = commit author) |

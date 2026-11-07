@@ -76,6 +76,11 @@ EXIT=1
 
 ### 3. Unreviewed PR cannot merge — BLOCKED state observed (PASS, state-level)
 
+> **Supplement (7 November 2026, later commit):** the merge attempt this section deferred was
+> subsequently executed and rejected by the base-branch policy — see
+> [`2026-11-07-vestry-pr1-unreviewed-merge-attempt.md`](2026-11-07-vestry-pr1-unreviewed-merge-attempt.md).
+> The original text below is unchanged and was true when written.
+
 `gh pr view 1 --json mergeable,mergeStateStatus,state,reviews` →
 PR #1 (base `main`, head `6ce03c145462bcdb5d35a56075bae3235e834a95`):
 `state: OPEN`, `mergeable: MERGEABLE`, `mergeStateStatus: BLOCKED`, **zero reviews**.
@@ -96,7 +101,7 @@ Both push rejections (tests 1 and 2) were issued to `Rohan0603`, the repository 
 | Strict up-to-date requirement (`strict: true`) | configured | `main` has not advanced beyond the open PRs' merge bases; demonstrating the block requires an authorized merge to advance `main` first. |
 | Required status checks | `checks: []` | No CI exists yet; nothing to require. Remains a `target` until a workflow is added and its check is bound. |
 | Branch-deletion block | `allow_deletions: false` | No deletion of `main` was attempted: the blast radius if the setting were wrong is the loss of the base branch. Read-back only. |
-| Merge-time review enforcement | 1 approving review required | Evidence is the `BLOCKED` merge state (test 3); no actual merge call was made. |
+| Merge-time review enforcement | 1 approving review required | Evidence is the `BLOCKED` merge state (test 3); no actual merge call was made. *[Erratum: a merge call was later made and rejected — see the supplement linked at test 3; this row is superseded.]* |
 | Signed-commits requirement | `required_signatures: false` | Not enabled; §21 says "signed where the toolchain allows" — deferred to release tooling work. |
 
 ## D29 summary
