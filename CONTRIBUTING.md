@@ -94,7 +94,8 @@ configured-but-undemonstrated settings stay `target`:
 | Enforce on admins | `verified-enforced` | Both push rejections were issued to the admin account |
 | Block force pushes | `verified-enforced` | Non-fast-forward force push to `main` rejected (GH006) |
 | Dismiss stale approvals on new commits | `target` | Configured; no approving review exists to dismiss (single collaborator = commit author) |
-| Require status checks (strict up-to-date) | `target` | Configured; no CI checks exist yet, and `main` has not advanced to demonstrate the up-to-date block |
+| Require the `governance` CI check | `verified-enforced` | Check runs on all PRs; deliberate violation failed (run 42355407047) and merge was rejected ([evidence](evidence/2026-11-07-vestry-governance-ci-required-check.md)); review gate was also unsatisfied, so gates are not isolated |
+| Strict up-to-date with `main` | `target` | Configured (`strict: true`); `main` has not advanced via an authorized merge, so the out-of-date block is undemonstrated |
 | Block deletions | `target` | Configured and read back; deleting `main` was not attempted |
 
 Applying or changing these settings needs repository administrator rights, which is an Owner action.
