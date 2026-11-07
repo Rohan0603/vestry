@@ -10,9 +10,10 @@ an `src/`. There is none, and inventing one is a scope violation, not a contribu
 
 The authoritative artefacts are:
 
-- [`REQUIREMENTS.md`](REQUIREMENTS.md) — the baseline. **This file is authoritative.** It is at revision 1.3,
+- [`REQUIREMENTS.md`](REQUIREMENTS.md) — the baseline. **This file is authoritative.** It is at revision 1.4,
   frozen as 1.0 on 6 November 2026 under decision D23, and every later change went through §4's change control
-  (1.3 adds D36/D37, decided by the Owner at Gate 2 review on 7 November 2026).
+  (1.3 adds D36/D37, decided by the Owner at Gate 2 review on 7 November 2026; 1.4 adds D38, Owner-session
+  bootstrap authentication for protected routes, decided by the Owner on 7 November 2026).
 - [`evidence/`](evidence/) — four dated verification records for decision D20, all about OpenCode 1.19.3.
 - [`probe/PLAN.md`](probe/PLAN.md) — the plan the live probe ran against.
 - [`name-reservation/`](name-reservation/) — the placeholder crate kept so the `vestry` name stays available.
