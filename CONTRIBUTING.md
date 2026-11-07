@@ -55,6 +55,13 @@ Every PR states, in this order:
 Review binds to the exact SHA reviewed. Any commit pushed after a review invalidates it, and the review is
 re-obtained rather than extended.
 
+**Solo-repository review model (D39, revision 1.5).** This repository has one Owner, who is also the
+commit-author identity of agent-produced work, so GitHub cannot record a non-author approving review.
+The §6 Phase 4 step 6 reviewer is therefore an independent reviewer *instance* — a subagent distinct from
+the authoring agent — whose verdict and findings are posted as a pull-request comment bound to the exact
+head SHA. The merge itself remains an Owner-authorized Tier-C action; a review comment is procedural
+evidence, not a mechanical gate, and never substitutes for that authorization.
+
 ## What never gets committed
 
 `.env*` and any credential in any form · SQLite or other database files · `auth.json` and worker session stores ·
@@ -83,17 +90,19 @@ immutable history rather than documentation to be tidied:
 
 `main` carries the following settings, applied 7 November 2026 under Owner authorization and verified
 by API read-back plus live rejection tests
-([`evidence/2026-11-07-vestry-main-branch-protection.md`](evidence/2026-11-07-vestry-main-branch-protection.md)).
+([`evidence/2026-11-07-vestry-main-branch-protection.md`](evidence/2026-11-07-vestry-main-branch-protection.md)),
+adjusted the same day under D39 (approving-review count 1 → 0; review is the recorded independent-instance
+verdict above).
 Per the baseline's D32, a setting is `verified-enforced` only where enforcement was actually observed;
 configured-but-undemonstrated settings stay `target`:
 
 | Setting | Status | Basis |
 |---|---|---|
 | Require a PR before merging | `verified-enforced` | Direct fast-forward push to `main` rejected (GH006), as admin |
-| Require one approving review | `verified-enforced` | Merge attempt on unreviewed PR #1 rejected: "base branch policy prohibits the merge" ([supplement](evidence/2026-11-07-vestry-pr1-unreviewed-merge-attempt.md)) |
+| Independent exact-SHA review (D39) | process-bound | Reviewer instance ≠ authoring instance; verdict recorded as a PR comment bound to the head SHA; merge is Owner-authorized Tier C. GitHub `required_approving_review_count` is 0 — the former `1` setting was removed 7 November 2026 under D39; its enforcement evidence (merge attempt rejected) remains in the dated records |
 | Enforce on admins | `verified-enforced` | Both push rejections were issued to the admin account |
 | Block force pushes | `verified-enforced` | Non-fast-forward force push to `main` rejected (GH006) |
-| Dismiss stale approvals on new commits | `target` | Configured; no approving review exists to dismiss (single collaborator = commit author) |
+| Dismiss stale approvals on new commits | `target` (moot under D39) | Configured; no GitHub approving reviews exist in the solo model. The equivalent rule — any post-review commit invalidates the review — binds the D39 review record |
 | Require the `governance` CI check | `verified-enforced` | Check runs on all PRs; deliberate violation failed (run 42355407047) and merge was rejected ([evidence](evidence/2026-11-07-vestry-governance-ci-required-check.md)); review gate was also unsatisfied, so gates are not isolated |
 | Strict up-to-date with `main` | `target` | Configured (`strict: true`); `main` has not advanced via an authorized merge, so the out-of-date block is undemonstrated |
 | Block deletions | `target` | Configured and read back; deleting `main` was not attempted |
