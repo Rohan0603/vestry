@@ -70,3 +70,20 @@ jobs:
           name: governance-audit-report
           path: governance-report.json
           if-no-files-found: ignore
+
+  # Vestry main already requires the exact GitHub Actions check named "governance".
+  # Fail closed if the policy validator has not succeeded; do not treat a
+  # skipped/failed upstream job as an approval.
+  governance:
+    name: governance
+    if: ${{ always() }}
+    needs: [policy-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require successful policy validator tests
+        shell: bash
+        run: |
+          if [ "${{ needs.policy-tests.result }}" != "success" ]; then
+            echo "::error::Governance validator did not succeed"
+            exit 1
+          fi
