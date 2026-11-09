@@ -1,3 +1,17 @@
+# Current GitHub Chief/Worker governance — Vestry migration (2026-11-09)
+
+**Development tracking precedence:** GitHub Issues and the authorized GitHub Projects v2 board replace legacy Linear executor/status routing instructions found later in this file, **once the Project is independently configured and read back**. Until then, Project membership/Status/Priority are NOT VERIFIED and implementation readiness cannot be assumed. Linear VES IDs remain provenance links, not a second live execution queue. **Do not change the product's own SQLite runtime-state design.**
+
+**Binding project rules preserved:** Vestry's `REQUIREMENTS.md` baseline, D-numbered immutable decision/change-control requirements, evidence integrity, `CONTRIBUTING.md`, branch protections and security requirements remain fully in force. This additive migration cannot waive them.
+
+**Routing:** one primary `chief` or `worker`; `human` may coexist only with `chief`; `metadata-bootstrap` means **metadata-only** Worker operations and never authorizes product code. Chief specifies/approves Project, Status, Priority, milestones, dependencies and first-handoff `GITHUB METADATA SETUP`. If Projects access is missing, use explicit `METADATA BOOTSTRAP HANDOFF`, Worker read-back, then a *separate* Chief-reviewed Project `Ready` handoff. Fail closed on ambiguity.
+
+**No automatic agents:** labels, GitHub Actions and issue events must never invoke Chief/Worker models. The owner invokes or schedules each AI tool independently. The complete portable policy is `docs/GITHUB_AGENT_GOVERNANCE.md`; for task-routing/status matters, this section and that contract supersede the historical Linear-only text below. Preserve all other Vestry-specific rules.
+
+---
+
+## Preserved Vestry-specific agent instructions
+
 # Vestry — agent instructions
 
 You are working on **Vestry**: a local, single-user control plane in which a deterministic Chief runs a
