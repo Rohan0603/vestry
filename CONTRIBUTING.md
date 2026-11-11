@@ -91,15 +91,15 @@ immutable history rather than documentation to be tidied:
 `main` carries the following settings, applied 7 November 2026 under Owner authorization and verified
 by API read-back plus live rejection tests
 ([`evidence/2026-11-07-vestry-main-branch-protection.md`](evidence/2026-11-07-vestry-main-branch-protection.md)),
-adjusted the same day under D39 (approving-review count 1 → 0; review is the recorded independent-instance
-verdict above).
+adjusted 11 November 2026 under D39 (approving-review count 1 → 0, applied and read back; review is the
+recorded independent-instance verdict above).
 Per the baseline's D32, a setting is `verified-enforced` only where enforcement was actually observed;
 configured-but-undemonstrated settings stay `target`:
 
 | Setting | Status | Basis |
 |---|---|---|
 | Require a PR before merging | `verified-enforced` | Direct fast-forward push to `main` rejected (GH006), as admin |
-| Independent exact-SHA review (D39) | process-bound | Reviewer instance ≠ authoring instance; verdict recorded as a PR comment bound to the head SHA; merge is Owner-authorized Tier C. GitHub `required_approving_review_count` is 0 — the former `1` setting was removed 7 November 2026 under D39; its enforcement evidence (merge attempt rejected) remains in the dated records |
+| Independent exact-SHA review (D39) | process-bound | Reviewer instance ≠ authoring instance; verdict recorded as a PR comment bound to the head SHA; merge is Owner-authorized Tier C. GitHub `required_approving_review_count` is 0 — the former `1` setting was removed 11 November 2026 under D39; its enforcement evidence (merge attempt rejected) remains in the dated records |
 | Enforce on admins | `verified-enforced` | Both push rejections were issued to the admin account |
 | Block force pushes | `verified-enforced` | Non-fast-forward force push to `main` rejected (GH006) |
 | Dismiss stale approvals on new commits | `target` (moot under D39) | Configured; no GitHub approving reviews exist in the solo model. The equivalent rule — any post-review commit invalidates the review — binds the D39 review record |
