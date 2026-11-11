@@ -128,7 +128,9 @@ test('workflow preserves required policy name and does not skip missing live con
 
 test('aggregate job is exactly named governance and always runs', () => {
   const workflow = readWorkflow();
-  // The branch-protected required check is the job named exactly "governance".
+  // The aggregate job keeps the exact name "governance" for continuity with
+  // the historical required-check contract. Current branch protection requires
+  // "Policy validator tests" and "Gitleaks secret scan" (verified 2026-11-11).
   assert.match(workflow, /^  governance:\n    name: governance\n    if: \$\{\{ always\(\) \}\}\n    needs: \[policy-tests, live-audit\]$/m);
 });
 
