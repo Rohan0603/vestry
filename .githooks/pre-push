@@ -43,8 +43,14 @@ while read -r local_ref local_oid remote_ref remote_oid; do
   for commit in $commits; do
     echo "Scanning commit $commit for $local_ref -> $remote_ref with Gitleaks..." >&2
     # Each commit is passed as its own revision range; no space-containing Git argument is used.
+    # A parentless root commit has no "${commit}^" revision, so scan the commit itself instead.
     # Redaction prevents matching secrets being echoed in ordinary scanner output.
-    if ! gitleaks git --redact --no-banner --log-opts="${commit}^..${commit}" .; then
+    if git rev-parse --verify --quiet "${commit}^" >/dev/null 2>&1; then
+      range="${commit}^..${commit}"
+    else
+      range="${commit}"
+    fi
+    if ! gitleaks git --redact --no-banner --log-opts="${range}" .; then
       echo "Secret scan BLOCKED: remove secrets from every affected commit before pushing." >&2
       exit 1
     fi
