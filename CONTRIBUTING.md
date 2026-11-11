@@ -81,14 +81,26 @@ immutable history rather than documentation to be tidied:
 
 ## Branch protection
 
-The settings this repository is meant to carry on `main`: require a PR before merging; require one approving
-review; **dismiss stale approvals when new commits arrive**; require status checks; block force pushes; block
-deletions.
+`main` carries the following settings, applied 7 November 2026 under Owner authorization and verified
+by API read-back plus live rejection tests
+([`evidence/2026-11-07-vestry-main-branch-protection.md`](evidence/2026-11-07-vestry-main-branch-protection.md)).
+Per the baseline's D32, a setting is `verified-enforced` only where enforcement was actually observed;
+configured-but-undemonstrated settings stay `target`:
 
-Applying them needs repository administrator rights, which is an Owner action. Until each setting is verified
-as actually enforced rather than merely intended, it is recorded as a `target` and not as
-`verified-enforced` — the baseline's D32, and the reason this section says "meant to carry" instead of
-"carries".
+| Setting | Status | Basis |
+|---|---|---|
+| Require a PR before merging | `verified-enforced` | Direct fast-forward push to `main` rejected (GH006), as admin |
+| Require one approving review | `verified-enforced` | Merge attempt on unreviewed PR #1 rejected: "base branch policy prohibits the merge" ([supplement](evidence/2026-11-07-vestry-pr1-unreviewed-merge-attempt.md)) |
+| Enforce on admins | `verified-enforced` | Both push rejections were issued to the admin account |
+| Block force pushes | `verified-enforced` | Non-fast-forward force push to `main` rejected (GH006) |
+| Dismiss stale approvals on new commits | `target` | Configured; no approving review exists to dismiss (single collaborator = commit author) |
+| Require the `governance` CI check | `verified-enforced` | Check runs on all PRs; deliberate violation failed (run 42355407047) and merge was rejected ([evidence](evidence/2026-11-07-vestry-governance-ci-required-check.md)); review gate was also unsatisfied, so gates are not isolated |
+| Strict up-to-date with `main` | `target` | Configured (`strict: true`); `main` has not advanced via an authorized merge, so the out-of-date block is undemonstrated |
+| Block deletions | `target` | Configured and read back; deleting `main` was not attempted |
+
+Applying or changing these settings needs repository administrator rights, which is an Owner action.
+When a `target` setting is demonstrated, update this table in the same change that records the
+evidence — never before.
 
 ## Before you open anything
 
