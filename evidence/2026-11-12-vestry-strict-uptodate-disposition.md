@@ -57,21 +57,27 @@ were verified unchanged (HLD `e7ded45c…`, LLD `9a15d880…`). The file is remo
 request that carries this record; the disposable demo branch was deleted (GitHub auto-deleted the
 remote head on merge).
 
-## 3. Why an isolated strict up-to-date demonstration is not achievable here
+## 3. What the demonstration did and did not establish
 
 To make GitHub report a branch as behind and block the merge on strict up-to-date, the branch must
-be behind in **content**, not only ancestry. But any branch missing main's current
-`REQUIREMENTS.md` (D40) fails the governance checker's decision-row immutability check
-(`governance-checks.mjs` compares prior D-rows against the PR base SHA and flags a missing D40 as a
-deletion). The required `Policy validator tests` check therefore fails on a content-behind branch,
-so a merge rejection cannot isolate the strict gate from the status-check gate. A content-current
-branch, as demonstrated in §2, is treated as up-to-date and merges.
+be behind in **content**, not only ancestry (§2 showed a content-current branch merges). The
+governance checker (`governance-checks.mjs`) enforces **decision-row immutability** (plus markdown
+hygiene, required files and evidence naming) against the PR base SHA — not full content parity. A
+branch missing main's current `REQUIREMENTS.md` D40 row therefore fails the required `Policy
+validator tests` check, so a merge rejection of such a branch cannot isolate the strict gate from
+the status-check gate.
 
-**Disposition:** isolated strict-up-to-date behavioral enforcement is **NOT DEMONSTRATED**, with the
-reason above. The setting is configured and read back (§1); the content-current merge behavior is
-recorded as an empirical observation (§2). This is an honest limitation of demonstrating the gate on
-a solo repository whose CI enforces decision-row immutability against the moving base — not a claim
-that the gate is absent or misconfigured.
+What was **not** tested: a branch behind only in *non-decision* content while keeping the current
+D1–D40 rows (which would pass the checker). Whether such a branch would be reported as behind and
+blocked by strict up-to-date in isolation is unresolved. An earlier draft of this record called
+isolation "not achievable"; that over-generalized (independent review F3, comment 6806227452) — the
+checker does not require full content parity, so achievability is not established either way.
+
+**Disposition:** isolated strict-up-to-date behavioral enforcement is **NOT DEMONSTRATED**. The
+setting is configured and read back (§1); the content-current merge behavior is recorded as an
+empirical observation (§2); the non-decision-content-behind case is untested. This is an honest
+limitation of what was demonstrated — not a claim that the gate is absent or misconfigured, and not
+a claim that isolation is impossible.
 
 ## 4. Stale-approval dismissal — superseded by D39
 
@@ -90,8 +96,8 @@ approving reviews to act on in this review model.
 - **PASS (empirical observation):** a content-current, ancestry-behind PR with passing required checks
   was squash-merged under strict=true (PR #48); GitHub reported `mergeable_state: clean`.
 - **NOT DEMONSTRATED (isolated behavioral enforcement):** strict up-to-date blocking a content-behind
-  branch with otherwise-satisfied gates — not achievable because a content-behind branch fails the
-  decision-row immutability checker (§3).
+  branch with otherwise-satisfied gates. A D-row-behind branch fails the checker (non-isolatable); a
+  non-decision-content-behind branch with current D-rows was not tested (§3).
 - **SUPERSEDED:** stale-approval dismissal by D39 (§4); no native approving reviews exist.
 - **Cleanup:** the unintended demo file is removed by the pull request carrying this record; main's
   design digests were verified intact throughout.
