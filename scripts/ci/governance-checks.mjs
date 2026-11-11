@@ -39,7 +39,13 @@ const secretPatterns = [
   [/\bAKIA[0-9A-Z]{16}\b/, 'AWS access key id'],
   [/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/, 'private key block'],
 ];
-const scannable = /\.(md|toml|rs|yml|yaml|json|js|mjs|ts|txt)$|^(LICENSE|\.gitignore|\.gitattributes)$/;
+// Supplemental high-signal check, never a replacement for required Gitleaks.
+for (const f of files) {
+  if (/(^|\/)\.env|\.(?:pem|key)$|(^|\/)auth\.json$/.test(f)) {
+    fail(`${f}: forbidden credential-file class`);
+  }
+}
+const scannable = /\.(md|toml|rs|yml|yaml|json|js|mjs|ts|txt|py|pem|key|env)$|^(LICENSE|\.gitignore|\.gitattributes)$/;
 for (const f of files.filter((f) => scannable.test(f))) {
   const text = readFileSync(f, 'utf8');
   for (const [pattern, label] of secretPatterns) {
@@ -49,11 +55,31 @@ for (const f of files.filter((f) => scannable.test(f))) {
 
 if (files.includes('REQUIREMENTS.md')) {
   const req = readFileSync('REQUIREMENTS.md', 'utf8');
-  const ids = [...req.matchAll(/^\| D(\d+) \|/gm)].map((m) => Number(m[1]));
+  const decisionRows = (text) => [...text.matchAll(/^\|\s*D(\d+)\s*\|[^\r\n]*/gm)];
+  const rows = decisionRows(req);
+  const ids = rows.map((m) => Number(m[1]));
   if (ids.length === 0) fail('REQUIREMENTS.md: no decision rows found');
   const dupes = [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))];
   if (dupes.length) fail(`REQUIREMENTS.md: duplicate decision numbers: D${dupes.join(', D')}`);
+  if (ids.some((id, i) => id !== i + 1)) fail('REQUIREMENTS.md: decisions must be ordered and contiguous from D1');
   if (!/\*\*Revision:\*\*/.test(req)) fail('REQUIREMENTS.md: missing revision header');
+
+  // CI supplies the observed PR base/pre-push SHA. Local checks compare HEAD.
+  // This detects changes relative to that baseline, not all-history authority.
+  try {
+    const base = process.env.GOVERNANCE_BASE_SHA || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+    if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(base)) throw new Error('invalid base SHA');
+    const previous = execFileSync('git', ['show', `${base}:REQUIREMENTS.md`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    const previousRows = decisionRows(previous);
+    if (!previousRows.length) throw new Error('baseline contains no decisions');
+    const current = new Map(rows.map((m) => [m[1], m[0]]));
+    for (const row of previousRows) {
+      if (!current.has(row[1])) fail(`REQUIREMENTS.md: deleted prior decision D${row[1]}`);
+      else if (current.get(row[1]) !== row[0]) fail(`REQUIREMENTS.md: modified prior decision D${row[1]}; append a superseding decision instead`);
+    }
+  } catch {
+    fail('REQUIREMENTS.md: cannot verify prior decision rows against the supplied base (fetch full history and provide a valid commit SHA)');
+  }
 }
 
 const checks = 5;
@@ -62,4 +88,4 @@ if (failures.length) {
   for (const f of failures) console.error(`  - ${f}`);
   process.exit(1);
 }
-console.log(`governance: PASS (${files.length} tracked files; hygiene, markdown, evidence naming, secret scan, decision-row uniqueness — ${checks} check groups)`);
+console.log(`governance: PASS (${files.length} tracked files; hygiene, markdown, evidence naming, secret scan, decision-row integrity (unique, ordered, prior rows preserved) — ${checks} check groups)`);

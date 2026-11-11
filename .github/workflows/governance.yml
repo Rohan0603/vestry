@@ -1,19 +1,110 @@
-name: governance
+name: Agent Governance CI
 
+# Offline checks always run. Remote audit availability is reported separately;
+# a green offline check never certifies the live Project.
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '20 2 * * *'
 
 permissions:
   contents: read
+  issues: read
+
+concurrency:
+  group: governance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  governance:
+  policy-tests:
+    name: Policy validator tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: node scripts/ci/governance-checks.mjs
+      - name: Compile the validator
+        run: python -m py_compile scripts/validate_governance.py scripts/test_validate_governance.py
+      - name: Run offline governance tests
+        run: python -m unittest discover -s scripts -p 'test_*.py' -v
+      - name: Test document and decision checks
+        run: node --test scripts/ci/governance-checks.test.mjs
+      - name: Validate documents and preserve prior decision rows
+        env:
+          GOVERNANCE_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+        run: node scripts/ci/governance-checks.mjs
+
+  live-audit:
+    name: Project read-only audit
+    # Never expose the read-only Project credential to pull-request code.
+    # Scheduled/manual audits fail visibly if setup is absent; they cannot
+    # silently certify a skipped remote audit through the aggregate job.
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GH_PROJECTS_READ_TOKEN }}
+      PROJECT_ID: ${{ vars.GH_PROJECT_NODE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate read-only audit credentials
+        shell: bash
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Missing GH_PROJECTS_READ_TOKEN repository secret"
+            exit 2
+          fi
+          if [ -z "$PROJECT_ID" ]; then
+            echo "::error::Missing GH_PROJECT_NODE_ID repository variable"
+            exit 2
+          fi
+      - name: Audit Issue routes and GitHub Project status
+        run: |
+          python scripts/validate_governance.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --project-id "$PROJECT_ID" \
+            --output governance-report.json
+      - name: Upload audit evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-audit-report
+          path: governance-report.json
+          if-no-files-found: ignore
+
+  governance:
+    name: governance
+    if: ${{ always() }}
+    needs: [policy-tests, live-audit]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require offline checks and any requested remote audit
+        env:
+          POLICY_RESULT: ${{ needs.policy-tests.result }}
+          AUDIT_RESULT: ${{ needs.live-audit.result }}
+          EVENT_NAME: ${{ github.event_name }}
+        shell: bash
+        run: |
+          if [ "$POLICY_RESULT" != "success" ]; then
+            echo "::error::Governance validator did not succeed"
+            exit 1
+          fi
+          if [ "$EVENT_NAME" = "schedule" ] || [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ "$AUDIT_RESULT" != "success" ]; then
+              echo "::error::Requested Project audit did not succeed"
+              exit 1
+            fi
+          else
+            echo "::notice::Offline checks passed; live Project audit NOT RUN on this event"
+          fi
