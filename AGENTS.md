@@ -24,7 +24,7 @@ an `src/`. There is none, and inventing one is a scope violation, not a contribu
 
 The authoritative artefacts are:
 
-- [`REQUIREMENTS.md`](REQUIREMENTS.md) — the baseline. **This file is authoritative.** It is at revision 1.6,
+- [`REQUIREMENTS.md`](REQUIREMENTS.md) — the baseline. **This file is authoritative.** It is at revision 1.7,
   frozen as 1.0 on 6 November 2026 under decision D23, and every later change went through §4's change control
   (1.3 adds D36/D37, decided by the Owner at Gate 2 review on 7 November 2026; 1.4 adds D38, Owner-session
   bootstrap authentication for protected routes, decided by the Owner on 7 November 2026; 1.5 adds D39,
@@ -32,7 +32,10 @@ The authoritative artefacts are:
   exact-SHA PR comment, merges Owner-authorized — decided by the Owner on 7 November 2026; 1.6 adds D40,
   a Chief change-control record of the revision-5 design integration as D34 delegated selections, the
   pending fresh Owner Gate-2 approval of the changed digests, and the required-check reconciliation to
-  live protection — recorded by the Chief on 12 November 2026, not a new Owner policy decision).
+  live protection — recorded by the Chief on 12 November 2026, not a new Owner policy decision; 1.7 adds
+  D41, the Owner's explicit Gate-2 approval of the exact revision-5 HLD/LLD digests against baseline 1.6,
+  decided by the Owner on 12 November 2026 — a design acceptance binding those bytes under D30 that
+  authorizes no product implementation, which remains Worker scope requiring Gate 3).
 - [`evidence/`](evidence/) — four dated verification records for decision D20, all about OpenCode 1.19.3.
 - [`probe/PLAN.md`](probe/PLAN.md) — the plan the live probe ran against.
 - [`name-reservation/`](name-reservation/) — the placeholder crate kept so the `vestry` name stays available.
