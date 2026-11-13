@@ -1,8 +1,8 @@
 # Vestry high-level design
 
-Status: **Gate 2 draft; not approved or implementation-qualified**. Draft revision: 5, integrating the fourteen Chief advisory-review dispositions recorded 11 November 2026 and aligning baseline revisions 1.4–1.6 (D38 Owner-session auth, D39 solo review, D40 change-control record). Date: 12 November 2026. Scope: VES-8 and VES-9–VES-22, Vestry only. Baseline: [REQUIREMENTS.md](../REQUIREMENTS.md), revision 1.6, D1–D40. Source checkout: `main` at `3cc45154325cce98b02f0e8cc34f3e256640cf78` (revision 1.5); this revision on branch `ves/8-design-rev5`. Companion: [LLD.md](LLD.md).
+Status: **Gate 2 draft; not approved or implementation-qualified**. Draft revision: 6, replacing the revision-5 Linear project-management integration with Trello under baseline revision 1.8 (D42); the fourteen Chief advisory-review dispositions recorded 11 November 2026 remain integrated from revision 5, and no other design content changed. Date: 13 November 2026. Scope: VES-8 and VES-9–VES-22, Vestry only. Baseline: [REQUIREMENTS.md](../REQUIREMENTS.md), revision 1.8, D1–D46. Source checkout: `main` at `4f39cb1` (revision 1.7) plus revision 1.8 in PR #52; this revision on branch `ves/design-trello-rev6`. Companion: [LLD.md](LLD.md).
 
-“Decided” below means a delegated technical selection for this draft, not an Owner approval, a D-numbered amendment, or a demonstrated control. Every new runtime control is **target**. Historical D20 results keep their original scope and limitations. The baseline and original evidence are unchanged. Revision 4 carried a conditional Gate-2 approval bound to its exact published digests; revision 5 changes those bytes, so that approval does not extend here — fresh Owner Gate-2 approval of the revision-5 digests is **pending**, not assumed. No product code, installation, credential use, provider call or live process experiment is part of this design pass. Publication of this revision proceeds only under the Owner's scoped-corrections authorization (issue #9), through a reviewed pull request; it authorizes no runtime control.
+“Decided” below means a delegated technical selection for this draft, not an Owner approval, a D-numbered amendment, or a demonstrated control. Every new runtime control is **target**. Historical D20 results keep their original scope and limitations. The baseline and original evidence are unchanged. Revision 4 carried a conditional Gate-2 approval bound to its exact published digests; revision 5 changed those bytes and the Owner approved the revision-5 digests at Gate 2 on 12 November 2026 (D41); revision 6 changes those bytes, so the revision-5 approval does not extend here — fresh Owner Gate-2 approval of the revision-6 digests is **pending**, not assumed. No product code, installation, credential use, provider call or live process experiment is part of this design pass. Publication of this revision proceeds only under the Owner's scoped-corrections authorization (issue #9), through a reviewed pull request; it authorizes no runtime control.
 
 ## 1. Purpose and boundaries
 
@@ -10,7 +10,7 @@ Vestry is a durable local engineering control plane for one Owner on one machine
 
 One Rust executable contains the daemon, bundled SQLite, native supervision and embedded browser assets. Browser TypeScript is a build-time asset language, **not a TypeScript backend or an installed runtime dependency**. OpenCode is a separately discovered and qualified external worker dependency. No v1 source or database is reused. [§14; D1–D4]
 
-The daemon and browser experience work offline without Linear, a model or OpenCode. Missing dependencies disable affected dispatch capabilities, not history, evidence, policy-reference editing or Doctor views. No remote access, multi-tenancy, public service, nested workers, auto-merge or protected-branch bypass is introduced. [§14–§16]
+The daemon and browser experience work offline without Trello, a model or OpenCode. Missing dependencies disable affected dispatch capabilities, not history, evidence, policy-reference editing or Doctor views. No remote access, multi-tenancy, public service, nested workers, auto-merge or protected-branch bypass is introduced. [§14–§16]
 
 ## 2. System structure
 
@@ -22,7 +22,7 @@ Owner browser on 127.0.0.1
     +--------------------+--------------------+
     | Gate/anchor/plan    | policy + effect gateway
     | scheduler/Doctor   | verifier/review coordinator
-    | Linear connector   | adapter + owned-process supervisor
+    | Trello connector   | adapter + owned-process supervisor
     +--------------------+--------------------+
                          |
         one logical SQLite writer / transactions
@@ -33,7 +33,7 @@ Owner browser on 127.0.0.1
     | per-attempt lease  | per-attempt adapter store
     +--------------------+--------------------+
                          |
-    bounded-project Linear / explicitly authorised provider
+    bound Trello board / explicitly authorised provider
 ```
 
 Three active task slots are the default. Architect, Planner, Worker and Reviewer invocations all use one `HarnessAdapter` contract, with role-specific capabilities and admission records. They consume the same global process budget rather than spawning an uncounted planning pool. Architect/Planner admission binds authorized upstream scope and cannot require approval of the artefact that invocation will produce. Full thirteen-check D27 certification applies to Worker execution after Gate 3; canary, policy, ownership and capability checks apply to every role. Reviewer receives a fresh process, session and attempt and the exact candidate SHA. [§5–§8; D5–D7, D14, D27]
@@ -42,9 +42,9 @@ Three active task slots are the default. Architect, Planner, Worker and Reviewer
 
 | Concern | Authority | Other representations |
 |---|---|---|
-| Scope, intent and project-management record | Bound Vestry Linear project; approved baseline and gate artefacts | SQLite stores approved revisions and provenance, not a competing editable backlog |
-| Runtime, approvals, leases, ordering, recovery | SQLite | UI projections and Linear markers are read-backed representations |
-| Accepted source and versioned artefacts | Git | SHA/hash bindings in SQLite and Linear; commit prose never authorises an effect |
+| Scope, intent and project-management record | Bound Vestry Trello board; approved baseline and gate artefacts | SQLite stores approved revisions and provenance, not a competing editable backlog |
+| Runtime, approvals, leases, ordering, recovery | SQLite | UI projections and Trello markers are read-backed representations |
+| Accepted source and versioned artefacts | Git | SHA/hash bindings in SQLite and Trello; commit prose never authorises an effect |
 | Worker conversation | Adapter session store | Recoverable handle only; not acceptance or approval truth |
 | Governed action evidence | Native hash-chained audit | Optional telemetry is nonauthoritative |
 
@@ -75,7 +75,7 @@ Execution obtains a fenced worktree lease, read-backs START, runs an owned worke
 
 **Baseline sequencing discrepancy — resolved by D36 (revision 1.3, Owner-decided 7 November 2026):** the former §6 Phase 4 close-before-integration wording is superseded. Execution ends in `verified_handoff` with proofs attached and source retained; closure and merged-SHA CLOSEOUT occur only after the Owner-authorized, independently reviewed Phase 5 merge is observed. The remote workflow mapping must still be conformed to this order in the implementation design; no closure capability may fabricate Done/CLOSEOUT before the observed merge, and the handoff/closure split is now baseline law rather than a pending disposition. [§6 Phase 4 step 9 / Phase 5; D36]
 
-Every state-changing external effect has a transactionally committed intent, idempotency key, actor/sequence/fence and native audit event before execution. Result recording and corresponding messages are committed together. An uncertain remote outcome is reconciled through read-back; it is not blindly retried. No claim is made that SQLite and Git/Linear/Win32 share a physical atomic transaction. [§10–§12]
+Every state-changing external effect has a transactionally committed intent, idempotency key, actor/sequence/fence and native audit event before execution. Result recording and corresponding messages are committed together. An uncertain remote outcome is reconciled through read-back; it is not blindly retried. No claim is made that SQLite and Git/Trello/Win32 share a physical atomic transaction. [§10–§12]
 
 The ten-minute watchdog measures absence of meaningful durable progress. Raw token traffic, heartbeats and SSE keepalives do not reset it. Process liveness, output activity and known command deadlines inform diagnosis; they are recorded as observations, not invented progress. One diagnosis retry is bounded inside the attempt retry budget; repair cycles stay bounded at two per stable issue identity. Clarification questions, repair ordinals and diagnosis/retry reservations are durable, idempotently keyed and transactionally reserved before their effects; restart cannot reset them. Ordinary and watchdog retries retain the same attempt identity/count and increment dispatch ordinal/fence only after independent prior-tree termination and effect/source reconciliation; failed-candidate repairs consume the stable issue budget and use a new attempt. Uncertainty blocks replacement, never overlaps Jobs or silently replays a tool. Spend never stops work. [§8; D14–D16]
 
@@ -173,7 +173,7 @@ Every row is **decided for the draft**, with detailed contracts/fault cases in t
 | 2 / VES-10 | Same adapter for every LLM role, role-specific permissions; planning has scratch/snapshot input, no writable target lease | §5–§6; D7, D21 |
 | 3 / VES-11 | Single writer, append-only approvals/audit/anchors, fenced leases and transactional inbox/outbox; recoverable adapter handles | §10–§12; D3, D33 |
 | 4 / VES-12 | Versioned typed executable-check manifest with immutable hash, tri-state outcomes; nonmechanizable criterion stops Gate 1 readiness | §6, §9; D29–D31 |
-| 5 / VES-13 | Nonblocking multi-level token warnings; monetary levels only Owner configuration; deduplicated inbox/Linear/OS notification | §8, §13; D13, D16 |
+| 5 / VES-13 | Nonblocking multi-level token warnings; monetary levels only Owner configuration; deduplicated inbox/Trello/OS notification | §8, §13; D13, D16 |
 | 6 / VES-14 | Three atomic Owner clarification questions per goal, one consolidated unresolved decision at a time; no compound-question budget bypass | §6, §8; D34 |
 | 7 / VES-15 | Embedded React/TypeScript browser build (rust-embed release assets); Axum REST/SSE; eight surfaces and six filters; no runtime CDN/Node. Rejected: loose served directory (independent updates but install/version/integrity burden), vanilla framework-free client (equivalent buffering/virtualization/scroll-anchoring work), templated server pages (live multi-view reconciliation). Virtualization is framework-agnostic; bundle NOT MEASURED; five-axis comparison in LLD §7. Selection recorded under §18 item 7; formal closure at Gate 2 | §13–§14; D2–D3; disposition #14 |
 | 8 / VES-16 | Immutable route/config fingerprint; separate requested/resolved/served evidence; mismatch/unknown blocks affected capability | §8, §14–§16; R5 |
@@ -186,17 +186,17 @@ Every row is **decided for the draft**, with detailed contracts/fault cases in t
 
 ## 10. Delivery dependencies and unsatisfied gates
 
-The existing milestones remain the planning structure, not authorization to implement. Suggested design-to-proof order: state/audit/anchor foundation; atomic supervisor and crash harness; adapter/policy/pinning conformance; deterministic Chief/Linear/readiness; offline UI; independent integrated milestone-1 proof. Gate 3 must approve the sized plan before execution. VES-9 feeds VES-17/VES-21 and VES-25–VES-27; VES-11/VES-22 feed readiness and all lifecycle proofs. Do not create a parallel backlog. [§6, §19; D27]
+The existing milestones remain the planning structure, not authorization to implement. Suggested design-to-proof order: state/audit/anchor foundation; atomic supervisor and crash harness; adapter/policy/pinning conformance; deterministic Chief/Trello/readiness; offline UI; independent integrated milestone-1 proof. Gate 3 must approve the sized plan before execution. VES-9 feeds VES-17/VES-21 and VES-25–VES-27; VES-11/VES-22 feed readiness and all lifecycle proofs. Do not create a parallel backlog. [§6, §19; D27]
 
 **Blocking qualification gaps:** final-session tool-list canary; exact privileged-effect mediation/revocation; provider-served identity; secret-safe foreign runtime/egress behavior; atomic Job spawn/hard-crash evidence including broker limitations; end-to-end remote-write reconciliation. Existing VES-23–VES-31 own the relevant proof work. A credible design is not a pass for those issues.
 
 Not designed to release precision yet: installer/signing/release pipeline, migration upgrade implementations, provider-specific attestation and OS egress sandbox, complete component API code, notification platform adapter, exact library lockfiles, or an upstream-compatible custom effect-tool implementation. These cannot be left hidden inside a supposedly ready implementation issue. The LLD defines contracts and rejection conditions; unresolved execution capabilities stay unavailable.
 
-Gate 2 handoff requires independent review and Owner approval of both documents with exact source/digests and these limitations. Repository governance is now in place: `main` is protected (PR required, required checks `Policy validator tests` + `Gitleaks secret scan`, strict up-to-date, admin enforcement, force-push/deletion blocks; approving-review count 0 under D39 with independent non-authoring exact-SHA review comments), and revisions 1–4 landed through reviewed pull requests. Revision 5 changes the approved revision-4 bytes, so its digests require a **fresh Owner Gate-2 approval, which is pending**; the prior conditional approval does not extend to changed content. No issue is marked Done by this draft, and no runtime control is verified-enforced. [VES-8; §6, §21; D30, D32, D35, D39, D40]
+Gate 2 handoff requires independent review and Owner approval of both documents with exact source/digests and these limitations. Repository governance is now in place: `main` is protected (PR required, required checks `Policy validator tests` + `Gitleaks secret scan`, strict up-to-date, admin enforcement, force-push/deletion blocks; approving-review count 0 under D39 with independent non-authoring exact-SHA review comments), and revisions 1–4 landed through reviewed pull requests. Revision 5's digests were approved by the Owner on 12 November 2026 (D41); revision 6 changes those bytes, so its digests require a **fresh Owner Gate-2 approval, which is pending**; the revision-5 approval does not extend to changed content. No issue is marked Done by this draft, and no runtime control is verified-enforced. [VES-8; §6, §21; D30, D32, D35, D39, D40]
 
 ## 11. Research sources
 
-Research date: 7 November 2026; disposition sources read 11 November 2026; revision 5 integrated 12 November 2026. Pinned source inspection and current docs establish contracts/intent only. Historical live results are in the four unchanged [evidence records](../evidence/).
+Research date: 7 November 2026; disposition sources read 11 November 2026; revision 5 integrated 12 November 2026; revision 6 (Trello carrier) integrated 13 November 2026. Pinned source inspection and current docs establish contracts/intent only. Historical live results are in the four unchanged [evidence records](../evidence/).
 
 - W1: [Microsoft Job-list and handle-list attributes](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-updateprocthreadattribute).
 - W2: [Microsoft creation-time Job assignment and suspended-process gap](https://devblogs.microsoft.com/oldnewthing/20230209-00/?p=107812/).
@@ -219,3 +219,4 @@ Research date: 7 November 2026; disposition sources read 11 November 2026; revis
 - L6: [OTLP specification](https://opentelemetry.io/docs/specs/otlp/); [Langfuse self-hosting dependencies](https://langfuse.com/self-hosting). [disposition #23]
 - L7: [SQLite online backup](https://www.sqlite.org/backup.html); [SQLite atomic commit](https://sqlite.org/atomiccommit.html). Local coherence, not remote atomicity. [disposition #22, #28]
 - L8: [GitHub webhook best practices (delivery redelivery)](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks). [disposition #26]
+- L9: [Trello REST API rate limits](https://developer.atlassian.com/cloud/trello/guides/rest-api/rate-limits/) (300 requests per 10 s per API key, 100 per 10 s per token, HTTP 429 on excess); [Trello cards API — card comment actions](https://developer.atlassian.com/cloud/trello/rest/api-group-cards/). Read 13 November 2026 for revision 6. Documentation and connector-level observation only; no live product connector test was run. [D42; disposition #26]
