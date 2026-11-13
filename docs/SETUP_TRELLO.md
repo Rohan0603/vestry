@@ -80,7 +80,7 @@ back off and re-read state instead of retrying blindly. Do not run parallel writ
 These were exercised during the 13 November 2026 cutover and may be relied on for the same shapes:
 
 - `POST /1/cards/{id}/actions/comments` — create a card comment (no client-supplied create key);
-- `PUT /1/cards/{id}/actions/{actionId}` — edit a card comment;
+- `PUT /1/cards/{id}/actions/{idAction}/comments` — edit a card comment. This is the documented card-scoped edit route; the action-scoped `PUT /1/actions/{idAction}` is a different operation and is not used. Comment editing was exercised through the connector during the cutover, but the route has not been probed as a direct HTTP call in this repository, so its exact shape stays **NOT VERIFIED** until a write-probe reads the edit back;
 - `GET /1/cards/{id}?actions=comments` — read a card with its comments.
 
 Card `id` is stable across renames and list moves; the short link is not the identity. Other write endpoints
