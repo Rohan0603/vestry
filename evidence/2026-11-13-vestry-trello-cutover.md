@@ -70,7 +70,7 @@ Verification strength, stated honestly: this is instance-independent verificatio
 | Ref | Exception | State |
 |---|---|---|
 | L1 | Native Trello labels were not present on the board (default unnamed labels, all unused); labels were represented as text in card content, verified 36/36. | **Open, documented.** No REST credential was provided for label administration. This is an optional enhancement, not a record-integrity gap: the taxonomy is present in text and checklists. |
-| L2 | The board's cutover description was stale at migration time. | **Applied by the Owner on 13 November 2026** ("I've updated it"). The Owner applied it manually; an independent read-back of the new description text is **pending** and is not claimed here. |
+| L2 | The board's cutover description was stale at migration time. | **Applied by the Owner on 13 November 2026** ("I've updated it") and read back the same day: the live board description matches the prepared cutover text, modulo `_` emphasis. **Closed.** |
 | — | `VES-###` identifiers exist only inside card titles and comment provenance lines. | Accepted: historical provenance, not a live mapping. D42 makes Trello the record. |
 
 ## 8. Decision mapping
@@ -86,10 +86,10 @@ Verification strength, stated honestly: this is instance-independent verificatio
 ## 9. What this evidence does not establish
 
 - **No product implementation.** No Vestry code exists; no product test, fault injection or provider call was run. Every runtime control remains `target` (D32).
-- **No cleanup executed.** D46 authorizes deletion of the organisation Project v2 "Mission Control — Portfolio" (`PVT_kwDOFSJ1W84Bq4j0`, 170 items, 9 repositories) and conditional removal of the legacy `GH_PROJECTS_READ_TOKEN` secret / `GH_PROJECT_NODE_ID` variable. At the time of writing the board and any such credentials still exist; deletion is a separate, gated action whose own read-back must be recorded.
+- **No cleanup executed.** D46 authorizes deletion of the organisation Project v2 "Mission Control — Portfolio" (`PVT_kwDOFSJ1W84Bq4j0`, 170 items, 8 repositories) and conditional removal of the legacy `GH_PROJECTS_READ_TOKEN` secret / `GH_PROJECT_NODE_ID` variable. At the time of writing the board and any such credentials still exist; deletion is a separate, gated action whose own read-back must be recorded.
 - **No Trello wire protocol.** The product's Trello integration — board and list structure, card schema, comment serialisation, idempotency keys and the `trello_card_id ↔ task_id ↔ attempt_id` binding — is revision-6 design work and is **pending fresh Owner Gate-2 approval** (D30, D41). The migration used the Owner-supplied connector; it is not a specification of the product's client.
 - **No model qualification.** D44 pins the target models but proves nothing about them. Free-tier availability, local-model quality and tool-calling parity are milestone-1 work; unavailability yields `BLOCKED`, not a pass.
-- **Label and description read-back.** L1 remains open; L2's owner-applied description has not been independently read back in this record.
+- **Label and description read-back.** L1 remains open (labels are text, and no label-administration credential was provided); L2 is closed — the owner-applied board description was read back on 13 November 2026 and matches the prepared cutover text modulo `_` emphasis.
 
 ## 10. Reproducing the checks
 
