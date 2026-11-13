@@ -1,6 +1,6 @@
 # Vestry Trello board runbook
 
-**Authority:** D42 (baseline revision 1.8) makes the Trello board **Vestry** the sole system of record for
+**Authority:** D42 (baseline revision 1.9) makes the Trello board **Vestry** the sole system of record for
 this repository's task work and for the product's project-management integration. GitHub Projects and Linear
 are not records. GitHub remains the code-review and CI host: pull requests, exact-SHA review comments, required
 checks and the secret scan are unchanged.
