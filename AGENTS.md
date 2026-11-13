@@ -24,7 +24,7 @@ an `src/`. There is none, and inventing one is a scope violation, not a contribu
 
 The authoritative artefacts are:
 
-- [`REQUIREMENTS.md`](REQUIREMENTS.md) — the baseline. **This file is authoritative.** It is at revision 1.7,
+- [`REQUIREMENTS.md`](REQUIREMENTS.md) — the baseline. **This file is authoritative.** It is at revision 1.8,
   frozen as 1.0 on 6 November 2026 under decision D23, and every later change went through §4's change control
   (1.3 adds D36/D37, decided by the Owner at Gate 2 review on 7 November 2026; 1.4 adds D38, Owner-session
   bootstrap authentication for protected routes, decided by the Owner on 7 November 2026; 1.5 adds D39,
@@ -35,14 +35,20 @@ The authoritative artefacts are:
   live protection — recorded by the Chief on 12 November 2026, not a new Owner policy decision; 1.7 adds
   D41, the Owner's explicit Gate-2 approval of the exact revision-5 HLD/LLD digests against baseline 1.6,
   decided by the Owner on 12 November 2026 — a design acceptance binding those bytes under D30 that
-  authorizes no product implementation, which remains Worker scope requiring Gate 3).
+  authorizes no product implementation, which remains Worker scope requiring Gate 3; 1.8 adds D42–D46,
+  Trello as the sole system of record for repository task work and the product's PM integration with Linear
+  and GitHub Projects removed as records, standing agent self-merge after the D39 exact-SHA review and green
+  required checks, the never-paid hybrid re-scope of the §19 item 9 re-proof, deferral of the §20 name-securing
+  actions, and the gated Option-B GitHub Projects cleanup authorization — decided by the Owner on
+  12–13 November 2026).
 - [`evidence/`](evidence/) — four dated verification records for decision D20, all about OpenCode 1.19.3.
 - [`probe/PLAN.md`](probe/PLAN.md) — the plan the live probe ran against.
 - [`name-reservation/`](name-reservation/) — the placeholder crate kept so the `vestry` name stays available.
 
-Project management lives in Linear: project **Vestry** (`P-VES-9`), team **VES**, issues `VES-###`.
-Scope, intent, decisions and status are read from Linear. Runtime state of the *product* is a different thing
-and belongs to SQLite; it is not this repository's concern.
+Project management lives on the Trello board **Vestry** (<https://trello.com/b/JiiGuQAi/vestry>), per D42.
+Scope, intent, decisions and status are read from Trello; Linear and GitHub Projects are no longer records.
+Runtime state of the *product* is a different thing and belongs to SQLite; it is not this repository's concern.
+The full Trello-only governance rewrite follows in the governance change that removes the Projects CI dependency.
 
 ## The three rules that cause the most damage when broken
 
