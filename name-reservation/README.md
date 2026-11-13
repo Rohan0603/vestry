@@ -21,7 +21,8 @@ cargo publish
 
 Then confirm by fetching `https://crates.io/api/v1/crates/vestry` and checking that
 `owner` is you. Do not treat a successful `cargo publish` exit as proof until you have
-read it back — the same discipline §10 of the requirements baseline applies to Linear.
+read it back — the same read-back discipline §10 of the requirements baseline applies to
+the Trello project record.
 
 Note the placeholder declares `repository` and `homepage` pointing at github.com/usevestry/vestry.
 Create the organisation (step 2) before publishing, or edit those fields first.

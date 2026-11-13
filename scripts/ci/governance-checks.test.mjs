@@ -116,14 +116,17 @@ test('supplemental scanner detects Python patterns without disclosing match', (t
 // Line endings differ between Windows checkouts and CI; assert logical content.
 const readWorkflow = () => readFileSync(new URL('../../.github/workflows/governance.yml', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
-test('workflow preserves required policy name and does not skip missing live config', () => {
+test('workflow preserves required policy name and has no Projects credentials or schedule', () => {
   const workflow = readWorkflow();
   assert.match(workflow, /name: Policy validator tests/);
   assert.match(workflow, /node --test scripts\/ci\/governance-checks.test.mjs/);
   assert.match(workflow, /fetch-depth: 0/);
-  assert.ok(!workflow.includes("&& vars.GH_PROJECT_NODE_ID != ''"));
-  assert.match(workflow, /Requested Project audit did not succeed/);
-  assert.match(workflow, /live Project audit NOT RUN/);
+  // Trello is the record (D42); the retired GitHub Projects audit and its
+  // credential/variable dependency must not return to CI.
+  assert.ok(!workflow.includes('GH_PROJECTS_READ_TOKEN'));
+  assert.ok(!workflow.includes('GH_PROJECT_NODE_ID'));
+  assert.ok(!workflow.includes('live-audit'));
+  assert.ok(!/^\s+schedule:/m.test(workflow));
 });
 
 test('aggregate job is exactly named governance and always runs', () => {
@@ -131,22 +134,14 @@ test('aggregate job is exactly named governance and always runs', () => {
   // The aggregate job keeps the exact name "governance" for continuity with
   // the historical required-check contract. Current branch protection requires
   // "Policy validator tests" and "Gitleaks secret scan" (verified 2026-11-11).
-  assert.match(workflow, /^  governance:\n    name: governance\n    if: \$\{\{ always\(\) \}\}\n    needs: \[policy-tests, live-audit\]$/m);
+  assert.match(workflow, /^  governance:\n    name: governance\n    if: \$\{\{ always\(\) \}\}\n    needs: \[policy-tests\]$/m);
 });
 
-test('remote audit runs only on schedule or manual dispatch, never on PR code', () => {
-  const workflow = readWorkflow();
-  assert.match(workflow, /if: \$\{\{ github\.event_name == 'schedule' \|\| github\.event_name == 'workflow_dispatch' \}\}/);
-  assert.match(workflow, /GH_TOKEN: \$\{\{ secrets\.GH_PROJECTS_READ_TOKEN \}\}/);
-});
-
-test('aggregate result matrix fails closed per event type', () => {
+test('aggregate result requires offline checks and reports no remote audit', () => {
   const workflow = readWorkflow();
   // Offline policy result is required on every event, with no exception branch.
   assert.match(workflow, /if \[ "\$POLICY_RESULT" != "success" \]; then\n            echo "::error::Governance validator did not succeed"\n            exit 1\n          fi/);
-  // A requested remote audit must succeed on schedule/dispatch; skipped or
-  // failed audits cannot pass the aggregate job on those events.
-  assert.match(workflow, /if \[ "\$EVENT_NAME" = "schedule" \] \|\| \[ "\$EVENT_NAME" = "workflow_dispatch" \]; then\n            if \[ "\$AUDIT_RESULT" != "success" \]; then\n              echo "::error::Requested Project audit did not succeed"\n              exit 1\n            fi/);
-  // On pull_request/push the audit is explicitly reported NOT RUN, never implied passed.
-  assert.match(workflow, /else\n            echo "::notice::Offline checks passed; live Project audit NOT RUN on this event"\n          fi/);
+  // The retired Projects audit is gone; the aggregate says so instead of
+  // implying a remote check passed.
+  assert.match(workflow, /no remote board audit is configured/);
 });
