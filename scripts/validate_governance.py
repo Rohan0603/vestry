@@ -1,7 +1,16 @@
 #!/usr/bin/env python3
 """Read-only GitHub Projects v2 + Issues governance audit (Python 3.10+).
 
-Example:
+LEGACY MANUAL TOOL — NOT RUN BY CI, NOT CURRENT RECORD EVIDENCE.
+D42 (baseline revision 1.8) removed GitHub Projects and Linear as project-management
+records and made the Trello board the sole record; D46 authorizes deletion of the
+organization Portfolio Project once this governance adaptation has landed. This
+audit therefore has no live target after that deletion. It is retained only as a
+read-only historical reconciliation aid, including the offline bootstrap helpers
+covered by the unit tests; no workflow invokes it, and it proves nothing about
+Trello state.
+
+Example (historical, only while a Projects v2 board still exists):
     python scripts/validate_governance.py --repo OWNER/REPO --project-id PVT_xxxx
 
 Requires GH_TOKEN/GITHUB_TOKEN or an authenticated `gh auth token` with access to

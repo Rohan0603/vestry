@@ -5,7 +5,7 @@ about what it did.
 
 Vestry is a durable local control plane. One developer states a goal once. A deterministic Chief then runs the
 software delivery lifecycle — discovery, architecture, planning, decomposition, implementation, independent
-review, verification with proofs, and closure — using Linear as its project-management record, spawning
+review, verification with proofs, and closure — using a Trello board as its project-management record, spawning
 specialised coding agents through a supervised adapter contract, and continuing without manual follow-up until
 machine-checkable acceptance criteria pass and the Owner accepts.
 
@@ -18,9 +18,9 @@ not prove.
 
 | | |
 |---|---|
-| Baseline | [`REQUIREMENTS.md`](REQUIREMENTS.md), revision **1.2**, frozen as 1.0 on 6 November 2026 |
+| Baseline | [`REQUIREMENTS.md`](REQUIREMENTS.md), revision **1.8**, frozen as 1.0 on 6 November 2026 |
 | Verification | Four dated evidence records under [`evidence/`](evidence/), all against OpenCode 1.19.3 |
-| Project management | Linear — project **Vestry** (`P-VES-9`), team `VES`, issues `VES-###` |
+| Project management | Trello — board **Vestry** (<https://trello.com/b/JiiGuQAi/vestry>); GitHub Projects and Linear are not records (D42) |
 | Agent instructions | [`AGENTS.md`](AGENTS.md) |
 | Contribution rules | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
 | Next phase | Architecture design, starting from baseline §18 items 1 and 2 |

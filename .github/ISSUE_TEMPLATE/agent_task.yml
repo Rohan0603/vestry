@@ -1,16 +1,16 @@
 name: Agent work item
-# Install labels chief, worker, human and metadata-bootstrap before enabling this form.
-# Do not specify Projects in frontmatter: auto-add and verified metadata-bootstrap are supported.
-description: Create a tracked Chief-owned task that can later be certified for Worker.
+# This form is an intake request, not the task record (D42). The Trello card is the
+# record; no GitHub Project or label starts an agent. Do not add a Projects frontmatter key.
+description: Request a task that Chief will record as a card on the Vestry Trello board.
 title: "[TASK] "
-labels:
-  - chief
 body:
   - type: markdown
     attributes:
       value: >
-        Ordinary implementation requires verified GitHub Project membership and Ready.
-        If Chief cannot configure metadata, a first handoff may be worker +
+        This issue is a request channel only. Chief records the task on the Trello
+        board https://trello.com/b/JiiGuQAi/vestry and the card becomes the record.
+        Ordinary implementation requires the card to be in Ready with role worker.
+        If Chief cannot write the card metadata, a first handoff may be worker +
         metadata-bootstrap for metadata ONLY, then return to Chief for DoR. Never use
         both chief and worker; human is optional only when chief is present.
   - type: textarea
@@ -39,7 +39,7 @@ body:
     id: dependencies
     attributes:
       label: Dependencies and blockers
-      description: Add native GitHub blocking/sub-issue relations after creation.
+      description: Record as `blocked by <Trello card id or url>` on both cards after creation; Trello dependencies are advisory.
       value: "- Dependencies: none known (verify)\n- Human-only gate: none known (verify)"
     validations:
       required: true
@@ -81,17 +81,18 @@ body:
   - type: textarea
     id: metadata
     attributes:
-      label: GitHub metadata setup and first-handoff checklist
-      description: Chief specifies exact target Project and approved values. Mark VERIFIED, TO SET, NOT REQUIRED or NOT VERIFIED. Worker must not invent values.
+      label: Trello metadata setup and first-handoff checklist
+      description: Chief specifies the exact card field values. Mark VERIFIED, TO SET, NOT REQUIRED or NOT VERIFIED. Worker must not invent values.
       value: |
-        - Target Project URL / owner / number:
-        - Project membership: NOT VERIFIED (or evidence URL)
-        - Project Status now / target for bootstrap: Backlog (verify)
+        - Board: Vestry, https://trello.com/b/JiiGuQAi/vestry (board id)
+        - Card id / short link: NOT VERIFIED (or exact ids)
+        - Current list / target list: Backlog (verify)
+        - Role text: chief / worker / worker + metadata-bootstrap
         - Priority chosen by Chief: P0 / P1 / P2 / P3 (choose with rationale)
-        - Milestone: existing name/number / owner-approved create / NOT REQUIRED
-        - Native dependencies and sub-issues: exact issue URLs / NOT REQUIRED
-        - Assignee / other required fields: exact values / NOT REQUIRED
-        - Metadata actions ChatGPT Chief cannot perform: exact checklist
+        - Risk: Normal / Elevated / Critical; Type: exact value
+        - Dependencies: `blocked by <card id or url>` / NOT REQUIRED
+        - Linked PR, decision or evidence: exact URLs / NOT REQUIRED
+        - Metadata actions Chief cannot perform: exact checklist
         - Worker mode: metadata-bootstrap ONLY if any readiness-critical item is unresolved
     validations:
       required: true
@@ -111,7 +112,7 @@ body:
     attributes:
       label: Initial governance acknowledgement
       options:
-        - label: I checked for duplicate issues and will add this issue to the correct GitHub Project.
+        - label: I checked for duplicate cards and will have this request recorded as a card on the Vestry Trello board.
           required: true
-        - label: This issue starts Chief-owned. Any metadata-only Worker bootstrap must be explicitly scoped and return to Chief before implementation.
+        - label: This task starts Chief-owned. Any metadata-only Worker bootstrap must be explicitly scoped and return to Chief before implementation.
           required: true

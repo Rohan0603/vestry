@@ -1,6 +1,13 @@
 # Bootstrap playbook — GitHub Projects for a solo human + multiple AI agents
 
-**This is a setup guide, not a separate task database.** The configured GitHub Project and linked GitHub Issues are the live task truth.
+> **SUPERSEDED — 13 November 2026 (D42, baseline revision 1.8).** This playbook describes the retired
+> GitHub Projects v2 carrier. GitHub Projects and Linear are no longer records; the Trello board is the sole
+> system of record. The historical setup steps below are retained for provenance only and must not be run for
+> a new task. Use [`SETUP_TRELLO.md`](SETUP_TRELLO.md) for the current board runbook and
+> [`GITHUB_AGENT_GOVERNANCE.md`](GITHUB_AGENT_GOVERNANCE.md) for the operating contract.
+
+**This is a setup guide, not a separate task database.** The GitHub Project described below is retired; it is
+not the live task truth.
 
 ## 1. Scope and prerequisites
 

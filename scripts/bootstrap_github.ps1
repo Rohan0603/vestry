@@ -1,10 +1,11 @@
 <#
 Bootstrap GitHub governance on THIS repository or on a repo generated from the template.
-Requires GitHub CLI authentication with repo and project OAuth scopes.
+Requires GitHub CLI authentication with repo scope.
 Default is READ-ONLY preview. Use -Execute for writes.
 
 This script does not create a branch protection bypass or grant new access.
-Projects v2 status options and views require manual or separately authorized setup.
+The task record is the Trello board Vestry (D42), configured manually and outside this
+repository; this script creates no GitHub Project and needs no Projects OAuth scope.
 #>
 [CmdletBinding()]
 param(
@@ -26,12 +27,12 @@ if ($LASTEXITCODE -ne 0) { throw "Cannot read $Repo" }
 if (-not $info.permissions.admin) { throw 'Repository administration permission required' }
 Write-Host "Repository: $Repo | private: $($info.private) | template: $($info.is_template)"
 
-# GitHub repository templates do not copy labels or Projects settings.
+# GitHub repository templates do not copy labels or repository settings.
 $labels = @(
   @{name='chief'; color='5319e7'; description='Superior model: research, architecture, decisions and review'},
   @{name='worker'; color='0e8a16'; description='Scoped implementation and technical evidence'},
   @{name='human'; color='d93f0b'; description='Human-only gate; permitted together with chief only'},
-  @{name='metadata-bootstrap'; color='c5def5'; description='Metadata-only worker setup before Project Ready; must return to chief'}
+  @{name='metadata-bootstrap'; color='c5def5'; description='Metadata-only worker setup before Ready; must return to chief'}
 )
 $currentLabels = @(& gh api --paginate "repos/$Repo/labels?per_page=100" --jq '.[].name')
 if ($LASTEXITCODE -ne 0) { throw 'Cannot read repository labels' }
@@ -59,9 +60,10 @@ if ($Execute) {
 } else {
   Write-Host "[PREVIEW] Repo settings: $($settings | ConvertTo-Json -Compress)"
 }
-# Required fields/views, automatic add, permissions and protected-branch settings
-# are deliberately not claimed completed here.
-Write-Host 'GitHub Projects: inspect/create separately with gh project list/create/link'
+# Required views/fields, permissions and protected-branch settings are deliberately
+# not claimed completed here. Projects stays enabled at the repository level only so
+# historical links keep resolving; it is not a record (D42).
+Write-Host 'Trello board Vestry: configure and verify separately (see docs/SETUP_TRELLO.md); no GitHub Project is created'
 Write-Host 'Branch protection/rulesets: inspect availability; private repos may need paid plan'
 if ($Execute) {
   $after = & gh api "repos/$Repo" | ConvertFrom-Json

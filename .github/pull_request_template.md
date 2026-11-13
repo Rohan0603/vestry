@@ -1,15 +1,14 @@
-## GitHub Project and issue
+## Trello card and scope
 
-- Project URL:
-- Issue: Refs #___ (do **not** automatically close before Chief acceptance)
+- Card id / short link: (the Trello card is the task record, D42)
 - Worker run ID / branch:
 - Risk: Normal / Elevated / Critical
 
 ## Scope and implementation
 
-- Approved issue contract and actual changes:
+- Approved card contract and actual changes:
 - Decisions made locally versus escalated to Chief:
-- Out-of-scope or deferred work (linked issues):
+- Out-of-scope or deferred work (linked cards):
 
 ## Acceptance evidence (exact PR head SHA: `________`)
 
@@ -26,15 +25,15 @@
 
 ## Reviewer and merge gate
 
-- [ ] Worker posted REVIEW HANDOFF in issue and changed role from `worker` to `chief`.
-- [ ] Independent Chief reviewed actual diff and acceptance evidence; comment URL:
-- [ ] Required CI is green on exact reviewed head SHA.
+- [ ] Worker posted REVIEW HANDOFF on the card and changed role from `worker` to `chief`.
+- [ ] Independent non-authoring reviewer inspected the exact head and posted a D39 review comment; comment URL:
+- [ ] Required checks `Policy validator tests` and `Gitleaks secret scan` are green on the exact reviewed head SHA.
 - [ ] Required human/owner approval for Elevated/Critical scope is tied to this head SHA (or N/A).
 - [ ] No unresolved required PR review threads, blocked dependencies or release gates.
-- [ ] Deliberate authorized merge only; no unreviewed auto-merge.
+- [ ] Deliberate authorized merge only (D43 self-merge after review + green); no unreviewed auto-merge.
 
 ## Closeout (Chief fills after merge)
 
 - Merged commit SHA:
-- Final issue comment URL:
-- GitHub Project Status after authoritative read-back:
+- Final card comment URL:
+- Card list after authoritative read-back:
