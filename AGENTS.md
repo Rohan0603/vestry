@@ -1,6 +1,6 @@
 # Vestry agent instructions
 
-**Project management (D42, baseline revision 1.8):** the Trello board **Vestry**
+**Project management (D42, baseline revision 1.9):** the Trello board **Vestry**
 (<https://trello.com/b/JiiGuQAi/vestry>) is the sole system of record for repository task work and for the
 product's project-management integration. GitHub Projects and Linear are not records. The portable agent
 operating contract is [`docs/GITHUB_AGENT_GOVERNANCE.md`](docs/GITHUB_AGENT_GOVERNANCE.md), now expressed
@@ -22,7 +22,7 @@ an `src/`. There is none, and inventing one is a scope violation, not a contribu
 
 The authoritative artefacts are:
 
-- [`REQUIREMENTS.md`](REQUIREMENTS.md) — the baseline. **This file is authoritative.** It is at revision 1.8,
+- [`REQUIREMENTS.md`](REQUIREMENTS.md) — the baseline. **This file is authoritative.** It is at revision 1.9,
   frozen as 1.0 on 6 November 2026 under decision D23, and every later change went through §4's change control
   (1.3 adds D36/D37, decided by the Owner at Gate 2 review on 7 November 2026; 1.4 adds D38, Owner-session
   bootstrap authentication for protected routes, decided by the Owner on 7 November 2026; 1.5 adds D39,
@@ -38,7 +38,10 @@ The authoritative artefacts are:
   and GitHub Projects removed as records, standing agent self-merge after the D39 exact-SHA review and green
   required checks, the never-paid hybrid re-scope of the §19 item 9 re-proof, deferral of the §20 name-securing
   actions, and the gated Option-B GitHub Projects cleanup authorization — decided by the Owner on
-  12–13 November 2026).
+  12–13 November 2026; 1.9 adds D47–D50, the Owner's Gate-2 approval of design revision 6 by his own
+  merge of the reviewed head, the Gate-3 approval of the milestone-1 plan, three bounded operational
+  permissions, and the VES-4 stale-approval box superseded by D39 — decided by the Owner on
+  13–14 November 2026).
 - [`evidence/`](evidence/) — four dated verification records for decision D20, all about OpenCode 1.19.3.
 - [`probe/PLAN.md`](probe/PLAN.md) — the plan the live probe ran against.
 - [`name-reservation/`](name-reservation/) — the placeholder crate kept so the `vestry` name stays available.
