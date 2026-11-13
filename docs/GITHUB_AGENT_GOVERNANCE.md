@@ -115,7 +115,7 @@ Priority, then card creation time and card id as stable tie-breakers. Do not add
 | In Progress | Blocked | Current role: BLOCKED comment with owner, evidence and unblock condition; escalate route as needed |
 | In Progress | In Review | Worker: PR opened and complete evidence; switch to `chief` for independent assessment |
 | In Review | Ready or In Progress | Chief: review requests changes; return to `worker` with precise findings and next tests |
-| In Review | Done | Chief: gates satisfied, authorized merge executed and read back, closeout evidence recorded |
+| In Review | Done | Implementing agent: D39 exact-SHA review PASS recorded and required checks green; squash-merge executed under D43, merged SHA read back and closeout evidence recorded |
 | Any nonterminal | Canceled | Chief: explicit rationale, links to replacement/duplicate and owner approval if consequential |
 
 **Status is the card's list, not a second label or field.** Do not treat a green CI run, a checked-off
