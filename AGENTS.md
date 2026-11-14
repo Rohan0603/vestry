@@ -1,6 +1,6 @@
 # Vestry agent instructions
 
-**Project management (D42, baseline revision 1.9):** the Trello board **Vestry**
+**Project management (D42, baseline revision 1.10):** the Trello board **Vestry**
 (<https://trello.com/b/JiiGuQAi/vestry>) is the sole system of record for repository task work and for the
 product's project-management integration. GitHub Projects and Linear are not records. The portable agent
 operating contract is [`docs/GITHUB_AGENT_GOVERNANCE.md`](docs/GITHUB_AGENT_GOVERNANCE.md), now expressed
@@ -22,7 +22,7 @@ an `src/`. There is none, and inventing one is a scope violation, not a contribu
 
 The authoritative artefacts are:
 
-- [`REQUIREMENTS.md`](REQUIREMENTS.md) — the baseline. **This file is authoritative.** It is at revision 1.9,
+- [`REQUIREMENTS.md`](REQUIREMENTS.md) — the baseline. **This file is authoritative.** It is at revision 1.10,
   frozen as 1.0 on 6 November 2026 under decision D23, and every later change went through §4's change control
   (1.3 adds D36/D37, decided by the Owner at Gate 2 review on 7 November 2026; 1.4 adds D38, Owner-session
   bootstrap authentication for protected routes, decided by the Owner on 7 November 2026; 1.5 adds D39,
@@ -41,7 +41,10 @@ The authoritative artefacts are:
   12–13 November 2026; 1.9 adds D47–D50, the Owner's Gate-2 approval of design revision 6 by his own
   merge of the reviewed head, the Gate-3 approval of the milestone-1 plan, three bounded operational
   permissions, and the VES-4 stale-approval box superseded by D39 — decided by the Owner on
-  13–14 November 2026).
+  13–14 November 2026; 1.10 adds D51, the Owner's Gate-2 approval of design revision 7 by his own merge
+  of PR #60 at the reviewed head, binding the merged HLD/LLD digests under D30 without implementation
+  authority and with the three LLD §8.9 policy questions still pending — decided by the Owner on
+  14 November 2026).
 - [`evidence/`](evidence/) — four dated verification records for decision D20, all about OpenCode 1.19.3.
 - [`probe/PLAN.md`](probe/PLAN.md) — the plan the live probe ran against.
 - [`name-reservation/`](name-reservation/) — the placeholder crate kept so the `vestry` name stays available.
