@@ -1,0 +1,10 @@
+[package]
+name = "vestry-testkit"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+description = "Vestry test-only binaries and fixtures. Never shipped."
+
+[dependencies]
+windows.workspace = true

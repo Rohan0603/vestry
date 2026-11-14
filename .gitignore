@@ -51,6 +51,9 @@ Desktop.ini
 scratch/
 tmp/
 
+# Working briefs, scratch reports and agent transcripts — local only, never committed
+/migration-work/
+
 # Python bytecode caches from local governance-test runs
 __pycache__/
 *.pyc

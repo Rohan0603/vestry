@@ -1,0 +1,10 @@
+[package]
+name = "vestryd"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+description = "Vestry daemon: the single product binary (composition root)."
+
+[dependencies]
+vestry-core = { path = "../vestry-core" }

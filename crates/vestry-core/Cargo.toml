@@ -1,0 +1,21 @@
+[package]
+name = "vestry-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+description = "Vestry core library: contract types, durable state, adapter, policy and supervision."
+
+[dependencies]
+tokio.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+windows.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
